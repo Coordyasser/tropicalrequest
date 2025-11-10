@@ -7,7 +7,8 @@ import {
   Clock, 
   CheckCircle, 
   TrendingUp,
-  FileText 
+  FileText,
+  Users
 } from "lucide-react";
 import {
   BarChart,
@@ -24,6 +25,7 @@ interface Stats {
   pendentes: number;
   aprovadas: number;
   ultimosDias: number;
+  solicitantesUnicos: number;
 }
 
 interface ChartData {
@@ -36,6 +38,7 @@ const Dashboard = () => {
     pendentes: 0,
     aprovadas: 0,
     ultimosDias: 0,
+    solicitantesUnicos: 0,
   });
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -78,10 +81,20 @@ const Dashboard = () => {
           0
         ) || 0;
 
+        // Solicitantes únicos
+        const { data: allRequisicoes } = await supabase
+          .from("requisicoes")
+          .select("solicitante");
+
+        const uniqueSolicitantes = new Set(
+          allRequisicoes?.map((r) => r.solicitante) || []
+        ).size;
+
         setStats({
           pendentes: pendentes || 0,
           aprovadas: aprovadas || 0,
           ultimosDias: totalItems,
+          solicitantesUnicos: uniqueSolicitantes,
         });
 
         // Dados para o gráfico - últimos 30 dias
@@ -141,6 +154,13 @@ const Dashboard = () => {
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
+    {
+      title: "Solicitantes Únicos",
+      value: stats.solicitantesUnicos,
+      icon: Users,
+      color: "text-chart-4",
+      bgColor: "bg-chart-4/10",
+    },
   ];
 
   return (
@@ -160,7 +180,7 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {cards.map((card, index) => {
             const Icon = card.icon;
             return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const destinos = ["Produção", "Manutenção", "Escritório", "Obras"];
 const unidades = ["UN", "CX", "KG", "L", "M", "M²", "M³"];
 
 const NovaRequisicao = () => {
+  const [solicitante, setSolicitante] = useState("");
   const [localOrigem, setLocalOrigem] = useState("");
   const [destino, setDestino] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -37,6 +38,17 @@ const NovaRequisicao = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Preencher solicitante com o email do usuário ao carregar
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setSolicitante(user.email);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const addItem = () => {
     setItens([...itens, { produto: "", unidade: "", quantidade: "" }]);
@@ -57,7 +69,7 @@ const NovaRequisicao = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!localOrigem || !destino) {
+    if (!solicitante || !localOrigem || !destino) {
       toast({
         variant: "destructive",
         title: "Erro",
@@ -89,7 +101,7 @@ const NovaRequisicao = () => {
       const { data: requisicao, error: reqError } = await supabase
         .from("requisicoes")
         .insert({
-          solicitante: user.email!,
+          solicitante,
           local_origem: localOrigem,
           destino,
           observacao,
@@ -144,6 +156,18 @@ const NovaRequisicao = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Solicitante *
+                </label>
+                <Input
+                  value={solicitante}
+                  onChange={(e) => setSolicitante(e.target.value)}
+                  placeholder="Nome do solicitante"
+                  className="rounded-lg"
+                />
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
