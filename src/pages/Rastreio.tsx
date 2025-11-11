@@ -40,7 +40,54 @@ const Rastreio = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const { toast } = useToast();
+
+  const handleGerarPdf = async (requisicaoId: number) => {
+    setGeneratingId(requisicaoId);
+    try {
+      const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+        'generate-pdf',
+        {
+          body: { requisicaoId }
+        }
+      );
+
+      if (pdfError) throw pdfError;
+
+      const pdfUrl = (pdfData as any)?.pdfUrl as string | undefined;
+      const fileName = (pdfData as any)?.fileName as string | undefined;
+      if (pdfUrl) {
+        try {
+          const response = await fetch(pdfUrl);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName || `requisicao_${requisicaoId}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch {
+          window.open(pdfUrl, '_blank');
+        }
+      }
+
+      toast({
+        title: "PDF gerado!",
+        description: "O download da ficha foi iniciado.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar PDF",
+        description: error.message,
+      });
+    } finally {
+      setGeneratingId(null);
+    }
+  };
 
   const fetchRastreio = async () => {
     setLoading(true);
@@ -218,6 +265,7 @@ const Rastreio = () => {
                       <TableHead>Solicitante</TableHead>
                       <TableHead>Produtos</TableHead>
                       <TableHead className="text-right">Qtd Total</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -266,6 +314,21 @@ const Rastreio = () => {
                               (sum, i) => sum + Number(i.quantidade),
                               0
                             )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => item.requisicao?.id && handleGerarPdf(item.requisicao.id)}
+                              disabled={!!item.requisicao?.id && generatingId === item.requisicao.id}
+                            >
+                              {item.requisicao?.id && generatingId === item.requisicao.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4 mr-2" />
+                              )}
+                              Gerar PDF
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))

@@ -20,7 +20,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Eye, CheckCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, CheckCircle, RefreshCw, Loader2, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -45,6 +45,7 @@ const FilaRequisicoes = () => {
   const [itens, setItens] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [generatingId, setGeneratingId] = useState<number | null>(null);
   const { toast } = useToast();
 
   const fetchRequisicoes = async () => {
@@ -65,6 +66,52 @@ const FilaRequisicoes = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGerarPdf = async (req: Requisicao) => {
+    setGeneratingId(req.id);
+    try {
+      const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+        'generate-pdf',
+        {
+          body: { requisicaoId: req.id }
+        }
+      );
+
+      if (pdfError) throw pdfError;
+
+      const pdfUrl = (pdfData as any)?.pdfUrl as string | undefined;
+      const fileName = (pdfData as any)?.fileName as string | undefined;
+      if (pdfUrl) {
+        try {
+          const response = await fetch(pdfUrl);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName || `requisicao_${req.id}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch {
+          window.open(pdfUrl, '_blank');
+        }
+      }
+
+      toast({
+        title: "PDF gerado!",
+        description: "O download da ficha foi iniciado.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar PDF",
+        description: error.message,
+      });
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -106,6 +153,27 @@ const FilaRequisicoes = () => {
       );
 
       if (pdfError) throw pdfError;
+
+      // Disparar download do PDF gerado
+      const pdfUrl = (pdfData as any)?.pdfUrl as string | undefined;
+      const fileName = (pdfData as any)?.fileName as string | undefined;
+      if (pdfUrl) {
+        try {
+          const response = await fetch(pdfUrl);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName || `requisicao_${req.id}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        } catch {
+          // Fallback: abre em nova aba caso o download direto falhe
+          window.open(pdfUrl, '_blank');
+        }
+      }
 
       // Atualizar status
       const { error: updateError } = await supabase
@@ -222,6 +290,19 @@ const FilaRequisicoes = () => {
                               <Eye className="h-4 w-4 mr-2" />
                               Ver
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleGerarPdf(req)}
+                              disabled={generatingId === req.id}
+                            >
+                              {generatingId === req.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4 mr-2" />
+                              )}
+                              Gerar PDF
+                            </Button>
                             {req.status === "pendente" && (
                               <Button
                                 size="sm"
@@ -307,6 +388,21 @@ const FilaRequisicoes = () => {
                 </Table>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button
+                  onClick={() => selectedReq && handleGerarPdf(selectedReq)}
+                  className="w-full gap-2"
+                  variant="secondary"
+                  disabled={!!selectedReq && generatingId === selectedReq.id}
+                >
+                  {selectedReq && generatingId === selectedReq.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  Gerar PDF
+                </Button>
+
               {selectedReq?.status === "pendente" && (
                 <Button
                   onClick={() => handleAprovar(selectedReq)}
@@ -318,6 +414,7 @@ const FilaRequisicoes = () => {
                   Aprovar e Gerar PDF
                 </Button>
               )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>

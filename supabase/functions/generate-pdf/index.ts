@@ -50,44 +50,131 @@ serve(async (req) => {
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
     let yPos = height - 50;
-    
-    // Header - Company name
-    page.drawText("CONSTRUTORA", {
-      x: width / 2 - 60,
-      y: yPos,
-      size: 16,
+
+    // Helper to detect image type by magic bytes
+    const isPngBytes = (bytes: Uint8Array) => {
+      const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+      return sig.every((b, i) => bytes[i] === b);
+    };
+
+    // Header - Logo (optional, via env var TROPICAL_LOGO_URL)
+    const logoUrl = Deno.env.get('TROPICAL_LOGO_URL') || 'https://ttttktfgbkhchwnbbugx.supabase.co/storage/v1/object/public/imagem/tropical.jpg';
+    let headerBottomY = height - 140;
+    if (logoUrl) {
+      try {
+        const res = await fetch(logoUrl);
+        if (!res.ok) throw new Error(`Falha ao carregar logo: ${res.status}`);
+        const buf = await res.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const logoImage = isPngBytes(bytes)
+          ? await pdfDoc.embedPng(bytes)
+          : await pdfDoc.embedJpg(bytes);
+        // Scale logo to fit a box ~260x80 preserving aspect ratio
+        const maxLogoWidth = 260;
+        const maxLogoHeight = 80;
+        const widthScale = maxLogoWidth / logoImage.width;
+        const heightScale = maxLogoHeight / logoImage.height;
+        const scale = Math.min(widthScale, heightScale);
+        const drawW = logoImage.width * scale;
+        const drawH = logoImage.height * scale;
+        const logoY = height - 40 - drawH; // 40 top margin
+        page.drawImage(logoImage, {
+          x: 50,
+          y: logoY,
+          width: drawW,
+          height: drawH,
+        });
+        headerBottomY = logoY;
+      } catch (error) {
+        console.error('Erro ao carregar a logo:', error);
+      }
+    }
+
+    // Right-side header title and requisition number
+    const titleY = height - 70;
+    const titleText = "REQUISIÇÃO DE  MATERIAL";
+    const titleSize = 14;
+    const titleWidth = fontBold.widthOfTextAtSize(titleText, titleSize);
+    const titleX = width - 60 - titleWidth; // right aligned inside margin
+    page.drawText(titleText, {
+      x: titleX,
+      y: titleY,
+      size: titleSize,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
-    
-    yPos -= 20;
+
+    const idBoxPaddingX = 8;
+    const idBoxPaddingY = 6;
+    const idText = `<<${requisicaoId}>>`;
+    const idSize = 12;
+    const idTextWidth = font.widthOfTextAtSize(idText, idSize);
+    const idBoxWidth = idTextWidth + idBoxPaddingX * 2;
+    const idBoxHeight = idSize + idBoxPaddingY * 2;
+    const idBoxX = width - 60 - idBoxWidth;
+    const idBoxY = titleY - 28;
+    // Box
+    page.drawRectangle({
+      x: idBoxX,
+      y: idBoxY,
+      width: idBoxWidth,
+      height: idBoxHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+    });
+    // ID text
+    page.drawText(idText, {
+      x: idBoxX + idBoxPaddingX,
+      y: idBoxY + idBoxPaddingY - 1,
+      size: idSize,
+      font,
+      color: rgb(0.8, 0, 0),
+    });
+
+    // Company info under logo (left block)
+    let infoY = headerBottomY - 10;
     page.drawText("CONSTRUTORA E IMOBILIÁRIA TROPICAL LTDA.", {
-      x: width / 2 - 140,
-      y: yPos,
+      x: 50,
+      y: infoY,
       size: 10,
-      font,
+      font: fontBold,
       color: rgb(0, 0, 0),
     });
-    
-    yPos -= 15;
+    infoY -= 14;
     page.drawText("Av. Presidente Kennedy, nº 336 - São Cristóvão - CEP: 64.052-335", {
-      x: width / 2 - 185,
-      y: yPos,
+      x: 50,
+      y: infoY,
       size: 9,
       font,
       color: rgb(0, 0, 0),
     });
-    
-    yPos -= 15;
+    infoY -= 14;
     page.drawText("Fone: (86) 3232-3979 / Fax: (86) 3231-1832 - Teresina-Piauí", {
-      x: width / 2 - 160,
-      y: yPos,
+      x: 50,
+      y: infoY,
       size: 9,
       font,
       color: rgb(0, 0, 0),
     });
-    
-    yPos -= 30;
+
+    // De / Para row
+    infoY -= 20;
+    page.drawText("De:", { x: 50, y: infoY, size: 11, font: fontBold, color: rgb(0,0,0) });
+    page.drawText(`${requisicao.local_origem || "Escritório"}`, { x: 85, y: infoY, size: 11, font, color: rgb(0,0,0) });
+    page.drawText("Para:", { x: width/2 + 60, y: infoY, size: 11, font: fontBold, color: rgb(0,0,0) });
+    page.drawText(`${requisicao.destino}`, { x: width/2 + 105, y: infoY, size: 11, font, color: rgb(0,0,0) });
+
+    // Separator
+    yPos = infoY - 18;
+    page.drawLine({
+      start: { x: 50, y: yPos },
+      end:   { x: width - 50, y: yPos },
+      thickness: 1,
+      color: rgb(0.85, 0.85, 0.85),
+    });
+
+    yPos -= 20;
     page.drawText(`De: ${requisicao.local_origem || "Almoxarifado"}`, {
       x: 50,
       y: yPos,
