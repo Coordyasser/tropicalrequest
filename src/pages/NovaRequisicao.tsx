@@ -25,7 +25,7 @@ interface Item {
 
 const locais = ["Almoxarifado", "Escritório", "Produção", "Manutenção"];
 const destinos = ["Produção", "Manutenção", "Escritório", "Obras"];
-const unidades = ["UN", "CX", "KG", "L", "M", "M²", "M³", "PC", "BR", "GL", "TON", "SC", "RL", "BD", "FD", "PT", "LT", "TB"];
+const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
 const produtos = [
   "Cimento CP II",
