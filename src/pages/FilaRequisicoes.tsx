@@ -97,6 +97,16 @@ const FilaRequisicoes = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Generate PDF
+      const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+        'generate-pdf',
+        {
+          body: { requisicaoId: req.id }
+        }
+      );
+
+      if (pdfError) throw pdfError;
+
       // Atualizar status
       const { error: updateError } = await supabase
         .from("requisicoes")
@@ -111,14 +121,14 @@ const FilaRequisicoes = () => {
         .insert({
           requisicao_id: req.id,
           aprovado_por: user.email,
-          observacao: "Requisição aprovada",
+          observacao: "Requisição aprovada e PDF gerado",
         });
 
       if (rastreioError) throw rastreioError;
 
       toast({
         title: "Requisição aprovada!",
-        description: "PDF gerado e registrado no rastreio.",
+        description: "PDF gerado com sucesso e registrado no rastreio.",
       });
 
       setSelectedReq(null);
