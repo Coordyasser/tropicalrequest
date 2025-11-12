@@ -61,23 +61,23 @@ serve(async (req) => {
     let headerBottomY = height - 140;
     try {
       // Check if logo exists in storage
-      const { data: files } = await supabase.storage.from('imagem').list('', { search: 'tropical.jpg' });
+      const { data: files } = await supabase.storage.from('imagem').list('', { search: 'tropical_vetor.png' });
       
       // If logo doesn't exist, upload it from public URL
       if (!files || files.length === 0) {
         console.log('Logo not found in storage, uploading...');
-        const publicLogoRes = await fetch('https://cjupfccqeoftscmysemb.supabase.co/storage/v1/object/public/imagem/tropical.jpg');
+        const publicLogoRes = await fetch('https://cjupfccqeoftscmysemb.supabase.co/storage/v1/object/public/imagem/tropical_vetor.png');
         if (publicLogoRes.ok) {
           const logoBlob = await publicLogoRes.blob();
-          await supabase.storage.from('imagem').upload('tropical.jpg', logoBlob, {
-            contentType: 'image/jpeg',
+          await supabase.storage.from('imagem').upload('tropical_vetor.png', logoBlob, {
+            contentType: 'image/png',
             upsert: true
           });
         }
       }
       
       // Fetch logo from storage
-      const logoUrl = `${supabaseUrl}/storage/v1/object/public/imagem/tropical.jpg`;
+      const logoUrl = `${supabaseUrl}/storage/v1/object/public/imagem/tropical_vetor.png`;
       const res = await fetch(logoUrl);
       if (!res.ok) throw new Error(`Falha ao carregar logo: ${res.status}`);
       const buf = await res.arrayBuffer();

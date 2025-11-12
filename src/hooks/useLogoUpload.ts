@@ -13,7 +13,7 @@ export const useLogoUpload = () => {
           .storage
           .from('imagem')
           .list('', {
-            search: 'tropical.jpg'
+            search: 'tropical_vetor.png'
           });
 
         if (existingFiles && existingFiles.length > 0) {
@@ -24,15 +24,15 @@ export const useLogoUpload = () => {
         setIsUploading(true);
 
         // Fetch logo from public folder
-        const response = await fetch('/tropical.jpg');
+        const response = await fetch('/tropical_vetor.png');
         const blob = await response.blob();
 
         // Upload to storage
         const { error } = await supabase
           .storage
           .from('imagem')
-          .upload('tropical.jpg', blob, {
-            contentType: 'image/jpeg',
+          .upload('tropical_vetor.png', blob, {
+            contentType: 'image/png',
             upsert: true
           });
 
