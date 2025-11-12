@@ -58,7 +58,7 @@ serve(async (req) => {
     };
 
     // Header - Logo (optional, via env var TROPICAL_LOGO_URL)
-    const logoUrl = Deno.env.get('TROPICAL_LOGO_URL') || 'https://ttttktfgbkhchwnbbugx.supabase.co/storage/v1/object/public/imagem/tropical.jpg';
+    const logoUrl = Deno.env.get('TROPICAL_LOGO_URL') || 'https://cjupfccqeoftscmysemb.supabase.co/storage/v1/object/public/imagem/tropical.jpg';
     let headerBottomY = height - 140;
     if (logoUrl) {
       try {
@@ -173,26 +173,8 @@ serve(async (req) => {
       thickness: 1,
       color: rgb(0.85, 0.85, 0.85),
     });
-
-    yPos -= 20;
-    page.drawText(`De: ${requisicao.local_origem || "Almoxarifado"}`, {
-      x: 50,
-      y: yPos,
-      size: 11,
-      font,
-      color: rgb(0, 0, 0),
-    });
     
     yPos -= 20;
-    page.drawText(`Para: ${requisicao.destino}`, {
-      x: 50,
-      y: yPos,
-      size: 11,
-      font,
-      color: rgb(0, 0, 0),
-    });
-    
-    yPos -= 30;
     page.drawText("Autorizo a entrega ao portador dos itens discriminados abaixo:", {
       x: 50,
       y: yPos,

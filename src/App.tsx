@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { useLogoUpload } from "@/hooks/useLogoUpload";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NovaRequisicao from "./pages/NovaRequisicao";
@@ -51,13 +52,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
+const App = () => {
+  useLogoUpload(); // Auto-upload logo on app start
+  
+  return (
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route
             path="/"
@@ -96,6 +100,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
   </BrowserRouter>
-);
+  );
+};
 
 export default App;
