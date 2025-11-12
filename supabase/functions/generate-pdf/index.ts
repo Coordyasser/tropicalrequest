@@ -57,14 +57,30 @@ serve(async (req) => {
       return sig.every((b, i) => bytes[i] === b);
     };
 
-    // Header - Logo (optional, via env var TROPICAL_LOGO_URL)
-    const logoUrl = Deno.env.get('TROPICAL_LOGO_URL') || 'https://cjupfccqeoftscmysemb.supabase.co/storage/v1/object/public/imagem/tropical.jpg';
+    // Header - Logo - Upload to storage if not exists, then fetch
     let headerBottomY = height - 140;
-    if (logoUrl) {
-      try {
-        const res = await fetch(logoUrl);
-        if (!res.ok) throw new Error(`Falha ao carregar logo: ${res.status}`);
-        const buf = await res.arrayBuffer();
+    try {
+      // Check if logo exists in storage
+      const { data: files } = await supabase.storage.from('imagem').list('', { search: 'tropical.jpg' });
+      
+      // If logo doesn't exist, upload it from public URL
+      if (!files || files.length === 0) {
+        console.log('Logo not found in storage, uploading...');
+        const publicLogoRes = await fetch('https://cjupfccqeoftscmysemb.supabase.co/storage/v1/object/public/imagem/tropical.jpg');
+        if (publicLogoRes.ok) {
+          const logoBlob = await publicLogoRes.blob();
+          await supabase.storage.from('imagem').upload('tropical.jpg', logoBlob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+        }
+      }
+      
+      // Fetch logo from storage
+      const logoUrl = `${supabaseUrl}/storage/v1/object/public/imagem/tropical.jpg`;
+      const res = await fetch(logoUrl);
+      if (!res.ok) throw new Error(`Falha ao carregar logo: ${res.status}`);
+      const buf = await res.arrayBuffer();
         const bytes = new Uint8Array(buf);
         const logoImage = isPngBytes(bytes)
           ? await pdfDoc.embedPng(bytes)
