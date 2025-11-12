@@ -90,6 +90,11 @@ export const Layout = ({ children }: LayoutProps) => {
                 </div>
               </SheetContent>
             </Sheet>
+            <img 
+              src="https://xpcwlbdyuxzaoyknnpvx.supabase.co/storage/v1/object/public/imagem/tropical%20vetor.png" 
+              alt="Logo" 
+              className="h-14 w-auto py-2 pr-2"
+            />
             <h1 className="text-xl font-bold text-primary">
               Sistema de Requisições
             </h1>

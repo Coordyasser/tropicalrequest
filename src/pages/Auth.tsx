@@ -100,6 +100,13 @@ const Auth = () => {
       >
         <Card className="w-full max-w-md shadow-2xl">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <img 
+                src="https://xpcwlbdyuxzaoyknnpvx.supabase.co/storage/v1/object/public/imagem/tropical%20vetor.png" 
+                alt="Logo" 
+                className="h-20 w-auto"
+              />
+            </div>
             <CardTitle className="text-3xl font-bold text-primary">
               Sistema de Requisições
             </CardTitle>
