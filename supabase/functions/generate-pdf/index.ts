@@ -101,9 +101,8 @@ serve(async (req) => {
           height: drawH,
         });
         headerBottomY = logoY;
-      } catch (error) {
-        console.error('Erro ao carregar a logo:', error);
-      }
+    } catch (error) {
+      console.error('Erro ao carregar a logo:', error);
     }
 
     // Right-side header title and requisition number
