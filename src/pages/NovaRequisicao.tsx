@@ -1063,7 +1063,7 @@ const NovaRequisicao = () => {
 
       // Notificar via N8N webhook
       try {
-        await fetch("http://localhost:5678/webhook/35c97ede-cb49-4f97-8056-d941f934b1fd", {
+        await fetch("http://116a2f5e9f5b.ngrok-free.app/webhook/27efb4ea-eeb6-42d9-8742-7e21f9c3c704", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
