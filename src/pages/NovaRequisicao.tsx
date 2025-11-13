@@ -970,6 +970,7 @@ const NovaRequisicao = () => {
     { produto: "", unidade: "", quantidade: "" },
   ]);
   const [loading, setLoading] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -1060,6 +1061,37 @@ const NovaRequisicao = () => {
         );
 
       if (itensError) throw itensError;
+
+      // Notificar via N8N webhook se configurado
+      if (webhookUrl) {
+        try {
+          await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            mode: "no-cors",
+            body: JSON.stringify({
+              requisicao_id: requisicao.id,
+              solicitante,
+              local_origem: localOrigem,
+              destino,
+              observacao,
+              status: "pendente",
+              data_criacao: new Date().toISOString(),
+              itens: itemsValidos.map((item) => ({
+                produto: item.produto,
+                unidade: item.unidade,
+                quantidade: item.quantidade,
+              })),
+            }),
+          });
+          console.log("Notificação enviada via N8N");
+        } catch (webhookError) {
+          console.error("Erro ao enviar notificação N8N:", webhookError);
+          // Não bloqueia o fluxo principal se o webhook falhar
+        }
+      }
 
       toast({
         title: "Requisição enviada!",
@@ -1235,6 +1267,22 @@ const NovaRequisicao = () => {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <label className="text-sm font-medium">
+                  URL do Webhook N8N (Opcional)
+                </label>
+                <Input
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://seu-n8n.com/webhook/..."
+                  className="rounded-lg"
+                  type="url"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cole aqui a URL do webhook do N8N para receber notificações por email quando criar uma requisição
+                </p>
               </div>
 
               <Button
