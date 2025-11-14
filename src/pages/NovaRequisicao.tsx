@@ -23,6 +23,9 @@ interface Item {
   quantidade: string;
 }
 
+// URL do webhook N8N - pode ser configurada via variável de ambiente
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://known-directly-halibut.ngrok-free.app/webhook/0310edca-9a8f-4c22-8a25-d0873037fb2b";
+
 const locais = ["Almoxarifado", "Escritório", "Produção", "Manutenção"];
 const destinos = ["Produção", "Manutenção", "Escritório", "Obras"];
 const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
@@ -1063,30 +1066,38 @@ const NovaRequisicao = () => {
 
       // Notificar via N8N webhook
       try {
-        await fetch("https://known-directly-halibut.ngrok-free.app/webhook/0310edca-9a8f-4c22-8a25-d0873037fb2b", {
+        const webhookPayload = {
+          requisicao_id: requisicao.id,
+          solicitante,
+          local_origem: localOrigem,
+          destino,
+          observacao,
+          status: "pendente",
+          data_criacao: new Date().toISOString(),
+          itens: itemsValidos.map((item) => ({
+            produto: item.produto,
+            unidade: item.unidade,
+            quantidade: item.quantidade,
+          })),
+        };
+
+        console.log("Enviando dados para N8N webhook:", webhookPayload);
+
+        const response = await fetch(N8N_WEBHOOK_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          mode: "no-cors",
-          body: JSON.stringify({
-            requisicao_id: requisicao.id,
-            solicitante,
-            local_origem: localOrigem,
-            destino,
-            observacao,
-            status: "pendente",
-            data_criacao: new Date().toISOString(),
-            itens: itemsValidos.map((item) => ({
-              produto: item.produto,
-              unidade: item.unidade,
-              quantidade: item.quantidade,
-            })),
-          }),
+          body: JSON.stringify(webhookPayload),
         });
-        console.log("Notificação enviada via N8N");
+
+        if (!response.ok) {
+          throw new Error(`Webhook retornou status ${response.status}`);
+        }
+
+        console.log("Notificação enviada com sucesso para N8N");
       } catch (webhookError) {
-        console.error("Erro ao enviar notificação N8N:", webhookError);
+        console.error("Erro ao enviar webhook para o n8n:", webhookError);
         // Não bloqueia o fluxo principal se o webhook falhar
       }
 
