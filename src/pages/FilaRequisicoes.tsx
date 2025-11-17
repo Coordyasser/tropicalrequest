@@ -17,12 +17,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Eye, CheckCircle, RefreshCw, Loader2, FileText } from "lucide-react";
+import { Eye, CheckCircle, RefreshCw, Loader2, FileText, CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Requisicao {
   id: number;
@@ -46,7 +60,15 @@ const FilaRequisicoes = () => {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const [filtroDestino, setFiltroDestino] = useState<string>("todos");
+  const [dataInicio, setDataInicio] = useState<Date | undefined>();
+  const [dataFim, setDataFim] = useState<Date | undefined>();
   const { toast } = useToast();
+
+  // Lista de destinos únicos
+  const destinosUnicos = Array.from(
+    new Set(requisicoes.map((req) => req.destino))
+  ).sort();
 
   const fetchRequisicoes = async () => {
     setLoading(true);
@@ -212,6 +234,29 @@ const FilaRequisicoes = () => {
     }
   };
 
+  // Filtrar requisições
+  const requisicoesFiltered = requisicoes.filter((req) => {
+    // Filtro por destino
+    if (filtroDestino !== "todos" && req.destino !== filtroDestino) {
+      return false;
+    }
+
+    // Filtro por data
+    const dataReq = new Date(req.created_at);
+    if (dataInicio && dataReq < dataInicio) {
+      return false;
+    }
+    if (dataFim) {
+      const fimDia = new Date(dataFim);
+      fimDia.setHours(23, 59, 59, 999);
+      if (dataReq > fimDia) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pendente":
@@ -241,7 +286,105 @@ const FilaRequisicoes = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card className="shadow-lg">
-            <CardContent className="p-0">
+            <CardContent className="p-6">
+              {/* Filtros */}
+              <div className="mb-6 flex flex-wrap gap-4 pb-6 border-b">
+                {/* Filtro por Destino */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Destino</label>
+                  <Select value={filtroDestino} onValueChange={setFiltroDestino}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Todos os destinos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os destinos</SelectItem>
+                      {destinosUnicos.map((destino) => (
+                        <SelectItem key={destino} value={destino}>
+                          {destino}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtro Data Início */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Data Início</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          !dataInicio && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataInicio ? format(dataInicio, "dd/MM/yyyy") : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataInicio}
+                        onSelect={setDataInicio}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {dataInicio && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDataInicio(undefined)}
+                      className="w-fit px-2"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+
+                {/* Filtro Data Fim */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Data Fim</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          !dataFim && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataFim ? format(dataFim, "dd/MM/yyyy") : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataFim}
+                        onSelect={setDataFim}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {dataFim && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDataFim(undefined)}
+                      className="w-fit px-2"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+              </div>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -259,14 +402,14 @@ const FilaRequisicoes = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {requisicoes.length === 0 ? (
+                    {requisicoesFiltered.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                           Nenhuma requisição encontrada
                         </TableCell>
                       </TableRow>
                     ) : (
-                      requisicoes.map((req) => (
+                      requisicoesFiltered.map((req) => (
                         <TableRow key={req.id}>
                           <TableCell className="font-medium">#{req.id}</TableCell>
                           <TableCell>
