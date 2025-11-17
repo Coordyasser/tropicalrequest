@@ -61,6 +61,7 @@ const FilaRequisicoes = () => {
   const [processing, setProcessing] = useState(false);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [filtroDestino, setFiltroDestino] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
   const { toast } = useToast();
@@ -241,6 +242,11 @@ const FilaRequisicoes = () => {
       return false;
     }
 
+    // Filtro por status
+    if (filtroStatus !== "todos" && req.status !== filtroStatus) {
+      return false;
+    }
+
     // Filtro por data
     const dataReq = new Date(req.created_at);
     if (dataInicio && dataReq < dataInicio) {
@@ -303,6 +309,21 @@ const FilaRequisicoes = () => {
                           {destino}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtro por Status */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Todos os status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="aprovada">Aprovada</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
