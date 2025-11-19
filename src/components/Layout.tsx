@@ -7,7 +7,8 @@ import {
   Clock, 
   History, 
   LogOut,
-  Menu
+  Menu,
+  Trello
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -41,13 +42,31 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: "/nova-requisicao", label: "Nova Requisição", icon: Plus },
     { path: "/fila", label: "Fila de Requisições", icon: Clock },
     { path: "/rastreio", label: "Rastreio", icon: History },
+    { path: "https://trello.com/invite/b/6891ef5ed834f5ae47cb016b/ATTIb4999dee3c5257833452f1bcb660f55b604CA00E/painel-de-pedidos-de-compra", label: "Trello", icon: Trello, external: true },
   ];
 
   const NavLinks = () => (
     <>
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = location.pathname === item.path;
+        const isActive = !item.external && location.pathname === item.path;
+        
+        if (item.external) {
+          return (
+            <a
+              key={item.path}
+              href={item.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Icon className="h-5 w-5" />
+              <span className="font-medium">{item.label}</span>
+            </a>
+          );
+        }
+        
         return (
           <Link
             key={item.path}
