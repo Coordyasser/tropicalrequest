@@ -33,7 +33,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Eye, CheckCircle, RefreshCw, Loader2, FileText, CalendarIcon, X } from "lucide-react";
+import { Eye, CheckCircle, RefreshCw, Loader2, FileText, CalendarIcon, X, Edit, Trash2, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -42,12 +45,14 @@ interface Requisicao {
   id: number;
   solicitante: string;
   destino: string;
+  local_origem: string;
   status: string;
   created_at: string;
   observacao: string;
 }
 
 interface Item {
+  id?: string;
   produto: string;
   unidade: string;
   quantidade: number;
@@ -64,6 +69,13 @@ const FilaRequisicoes = () => {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [dataInicio, setDataInicio] = useState<Date | undefined>();
   const [dataFim, setDataFim] = useState<Date | undefined>();
+  const [editingReq, setEditingReq] = useState<Requisicao | null>(null);
+  const [editForm, setEditForm] = useState({
+    destino: "",
+    local_origem: "",
+    observacao: "",
+    itens: [] as Item[]
+  });
   const { toast } = useToast();
 
   // Lista de destinos únicos
@@ -141,6 +153,122 @@ const FilaRequisicoes = () => {
   useEffect(() => {
     fetchRequisicoes();
   }, []);
+
+  const handleEditarRequisicao = async (req: Requisicao) => {
+    try {
+      // Buscar itens da requisição
+      const { data: itensData, error } = await supabase
+        .from("itens_requisicao")
+        .select("*")
+        .eq("requisicao_id", req.id);
+
+      if (error) throw error;
+
+      setEditingReq(req);
+      setEditForm({
+        destino: req.destino,
+        local_origem: req.local_origem,
+        observacao: req.observacao || "",
+        itens: itensData?.map(item => ({
+          id: item.id,
+          produto: item.produto,
+          unidade: item.unidade,
+          quantidade: Number(item.quantidade)
+        })) || []
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar dados",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!editingReq) return;
+
+    try {
+      setProcessing(true);
+
+      // Atualizar dados da requisição
+      const { error: reqError } = await supabase
+        .from("requisicoes")
+        .update({
+          destino: editForm.destino,
+          local_origem: editForm.local_origem,
+          observacao: editForm.observacao,
+        })
+        .eq("id", editingReq.id);
+
+      if (reqError) throw reqError;
+
+      // Obter itens atuais
+      const { data: itensAtuais } = await supabase
+        .from("itens_requisicao")
+        .select("id")
+        .eq("requisicao_id", editingReq.id);
+
+      const idsAtuais = itensAtuais?.map(i => i.id) || [];
+      const idsEditados = editForm.itens.filter(i => i.id).map(i => i.id!);
+      
+      // Deletar itens removidos
+      const idsParaDeletar = idsAtuais.filter(id => !idsEditados.includes(id));
+      if (idsParaDeletar.length > 0) {
+        const { error: delError } = await supabase
+          .from("itens_requisicao")
+          .delete()
+          .in("id", idsParaDeletar);
+        
+        if (delError) throw delError;
+      }
+
+      // Atualizar itens existentes e inserir novos
+      for (const item of editForm.itens) {
+        if (item.id) {
+          // Atualizar item existente
+          const { error: updateError } = await supabase
+            .from("itens_requisicao")
+            .update({
+              produto: item.produto,
+              unidade: item.unidade,
+              quantidade: item.quantidade,
+            })
+            .eq("id", item.id);
+          
+          if (updateError) throw updateError;
+        } else {
+          // Inserir novo item
+          const { error: insertError } = await supabase
+            .from("itens_requisicao")
+            .insert({
+              requisicao_id: editingReq.id,
+              produto: item.produto,
+              unidade: item.unidade,
+              quantidade: item.quantidade,
+            });
+          
+          if (insertError) throw insertError;
+        }
+      }
+
+      toast({
+        title: "Requisição atualizada",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      setEditingReq(null);
+      fetchRequisicoes();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar",
+        description: error.message,
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const viewDetails = async (req: Requisicao) => {
     try {
@@ -454,6 +582,26 @@ const FilaRequisicoes = () => {
                               <Eye className="h-4 w-4 mr-2" />
                               Ver
                             </Button>
+                            {req.status === "pendente" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditarRequisicao(req)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleAprovar(req)}
+                                  disabled={processing}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Aprovar
+                                </Button>
+                              </>
+                            )}
                             <Button
                               size="sm"
                               variant="secondary"
@@ -467,16 +615,6 @@ const FilaRequisicoes = () => {
                               )}
                               Gerar PDF
                             </Button>
-                            {req.status === "pendente" && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleAprovar(req)}
-                                disabled={processing}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Aprovar
-                              </Button>
-                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -580,6 +718,136 @@ const FilaRequisicoes = () => {
               )}
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Edição */}
+        <Dialog open={!!editingReq} onOpenChange={() => setEditingReq(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Editar Requisição #{editingReq?.id}</DialogTitle>
+            </DialogHeader>
+            {editingReq && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="destino">Destino</Label>
+                    <Input
+                      id="destino"
+                      value={editForm.destino}
+                      onChange={(e) => setEditForm({ ...editForm, destino: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="local_origem">Local de Origem</Label>
+                    <Input
+                      id="local_origem"
+                      value={editForm.local_origem}
+                      onChange={(e) => setEditForm({ ...editForm, local_origem: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="observacao">Observação</Label>
+                  <Textarea
+                    id="observacao"
+                    value={editForm.observacao}
+                    onChange={(e) => setEditForm({ ...editForm, observacao: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Itens</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditForm({
+                        ...editForm,
+                        itens: [...editForm.itens, { produto: "", unidade: "", quantidade: 1 }]
+                      })}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Adicionar Item
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {editForm.itens.map((item, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 items-end">
+                        <div className="col-span-5">
+                          <Label>Produto</Label>
+                          <Input
+                            value={item.produto}
+                            onChange={(e) => {
+                              const newItens = [...editForm.itens];
+                              newItens[index].produto = e.target.value;
+                              setEditForm({ ...editForm, itens: newItens });
+                            }}
+                            placeholder="Nome do produto"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Label>Unidade</Label>
+                          <Input
+                            value={item.unidade}
+                            onChange={(e) => {
+                              const newItens = [...editForm.itens];
+                              newItens[index].unidade = e.target.value;
+                              setEditForm({ ...editForm, itens: newItens });
+                            }}
+                            placeholder="Ex: Unidade"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Label>Quantidade</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantidade}
+                            onChange={(e) => {
+                              const newItens = [...editForm.itens];
+                              newItens[index].quantidade = Number(e.target.value);
+                              setEditForm({ ...editForm, itens: newItens });
+                            }}
+                          />
+                        </div>
+                        <div className="col-span-1">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => {
+                              const newItens = editForm.itens.filter((_, i) => i !== index);
+                              setEditForm({ ...editForm, itens: newItens });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingReq(null)}
+                    disabled={processing}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSalvarEdicao}
+                    disabled={processing || editForm.itens.length === 0}
+                  >
+                    {processing ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
