@@ -220,9 +220,9 @@ serve(async (req) => {
       color: rgb(0, 0, 0),
     });
 
-    // Observações (se houver)
-    if (requisicao.observacao) {
-      yPos -= 18;
+    // Observações (sempre exibir se houver)
+    if (requisicao.observacao && requisicao.observacao.trim() !== "") {
+      yPos -= 20;
       page.drawText("Observações:", {
         x: 50,
         y: yPos,
@@ -231,9 +231,9 @@ serve(async (req) => {
         color: rgb(0, 0, 0),
       });
 
-      yPos -= 14;
+      yPos -= 16;
 
-      const observationLines = wrapText(requisicao.observacao, width - 100, font, 10);
+      const observationLines = wrapText(requisicao.observacao, width - 100, font, 9);
       observationLines.forEach((line) => {
         if (yPos < 120) {
           page = pdfDoc.addPage([595, 842]);
@@ -242,14 +242,14 @@ serve(async (req) => {
         page.drawText(line, {
           x: 50,
           y: yPos,
-          size: 10,
+          size: 9,
           font,
           color: rgb(0, 0, 0),
         });
-        yPos -= 12;
+        yPos -= 14;
       });
 
-      yPos -= 10;
+      yPos -= 8;
     }
     
     // Items table header
