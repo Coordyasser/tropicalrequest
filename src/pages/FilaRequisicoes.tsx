@@ -58,6 +58,8 @@ interface Item {
   quantidade: number;
 }
 
+const actionButtonClass = "h-8 px-2 text-xs gap-1 rounded-full";
+
 const FilaRequisicoes = () => {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [selectedReq, setSelectedReq] = useState<Requisicao | null>(null);
@@ -573,48 +575,54 @@ const FilaRequisicoes = () => {
                               {req.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => viewDetails(req)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver
-                            </Button>
-                            {req.status === "pendente" && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditarRequisicao(req)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleAprovar(req)}
-                                  disabled={processing}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Aprovar
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleGerarPdf(req)}
-                              disabled={generatingId === req.id}
-                            >
-                              {generatingId === req.id ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <FileText className="h-4 w-4 mr-2" />
+                          <TableCell className="text-right">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`${actionButtonClass} border`}
+                                onClick={() => viewDetails(req)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver
+                              </Button>
+                              {req.status === "pendente" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className={`${actionButtonClass} border`}
+                                    onClick={() => handleEditarRequisicao(req)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className={`${actionButtonClass} bg-primary text-primary-foreground`}
+                                    onClick={() => handleAprovar(req)}
+                                    disabled={processing}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    Aprovar
+                                  </Button>
+                                </>
                               )}
-                              Gerar PDF
-                            </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`${actionButtonClass} border`}
+                                onClick={() => handleGerarPdf(req)}
+                                disabled={generatingId === req.id}
+                              >
+                                {generatingId === req.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FileText className="h-4 w-4" />
+                                )}
+                                PDF
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))

@@ -43,13 +43,35 @@ serve(async (req) => {
 
     // Create PDF
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4 size
+    let page = pdfDoc.addPage([595, 842]); // A4 size
     const { width, height } = page.getSize();
     
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
     let yPos = height - 50;
+
+    const wrapText = (text: string, maxWidth: number, fontRef: any, fontSize: number) => {
+      if (!text) return [];
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let currentLine = "";
+
+      words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const testWidth = fontRef.widthOfTextAtSize(testLine, fontSize);
+
+        if (testWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+
+      if (currentLine) lines.push(currentLine);
+      return lines;
+    };
 
     // Helper to detect image type by magic bytes
     const isPngBytes = (bytes: Uint8Array) => {
@@ -197,9 +219,41 @@ serve(async (req) => {
       font,
       color: rgb(0, 0, 0),
     });
+
+    // Observações (se houver)
+    if (requisicao.observacao) {
+      yPos -= 18;
+      page.drawText("Observações:", {
+        x: 50,
+        y: yPos,
+        size: 10,
+        font: fontBold,
+        color: rgb(0, 0, 0),
+      });
+
+      yPos -= 14;
+
+      const observationLines = wrapText(requisicao.observacao, width - 100, font, 10);
+      observationLines.forEach((line) => {
+        if (yPos < 120) {
+          page = pdfDoc.addPage([595, 842]);
+          yPos = height - 50;
+        }
+        page.drawText(line, {
+          x: 50,
+          y: yPos,
+          size: 10,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        yPos -= 12;
+      });
+
+      yPos -= 10;
+    }
     
     // Items table header
-    yPos -= 25;
+    yPos -= 15;
     page.drawRectangle({
       x: 50,
       y: yPos - 5,
@@ -245,7 +299,7 @@ serve(async (req) => {
     itens?.forEach((item: any, index: number) => {
       if (yPos < 100) {
         // Add new page if needed
-        const newPage = pdfDoc.addPage([595, 842]);
+        page = pdfDoc.addPage([595, 842]);
         yPos = height - 50;
       }
       

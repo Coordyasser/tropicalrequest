@@ -26,8 +26,8 @@ interface Item {
 // URL do webhook N8N - pode ser configurada via variável de ambiente
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://known-directly-halibut.ngrok-free.app/webhook/2e752080-d196-4aa5-bf52-359d720687fe";
 
-const locais = ["Almoxarifado", "Escritório", "Produção", "Manutenção"];
-const destinos = ["Produção", "Manutenção", "Escritório", "Obras"];
+const locais = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
+const destinos = ["Setor de Compras"];
 const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
 const produtos = [
