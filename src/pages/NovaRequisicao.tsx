@@ -24,7 +24,7 @@ interface Item {
 }
 
 // URL do webhook N8N - pode ser configurada via variável de ambiente
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://known-directly-halibut.ngrok-free.app/webhook/2e752080-d196-4aa5-bf52-359d720687fe";
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8nevo-n8n.3fmybz.easypanel.host/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed";
 
 const locais = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
 const destinos = ["Setor de Compras"];
