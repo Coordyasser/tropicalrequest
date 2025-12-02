@@ -56,7 +56,7 @@ const NovaRequisicao = () => {
   }, []);
 
   const addItem = () => {
-    setItens([...itens, { produto: "", unidade: "", quantidade: "" }]);
+    setItens([...itens, { produto: "", unidade: "", quantidade: "", finalidade: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -68,6 +68,12 @@ const NovaRequisicao = () => {
   const updateItem = (index: number, field: keyof Item, value: string) => {
     const newItens = [...itens];
     newItens[index][field] = value;
+    
+    // Auto-preencher finalidade quando produto é selecionado
+    if (field === "produto" && value) {
+      newItens[index].finalidade = produtoToFinalidade[value] || "";
+    }
+    
     setItens(newItens);
   };
 
@@ -277,9 +283,9 @@ const NovaRequisicao = () => {
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex gap-3 items-end"
+                      className="flex flex-wrap gap-3 items-end"
                     >
-                      <div className="flex-1 space-y-2">
+                      <div className="flex-1 min-w-[200px] space-y-2">
                         <label className="text-sm">Produto</label>
                         <Select
                           value={item.produto}
@@ -300,6 +306,16 @@ const NovaRequisicao = () => {
                         </Select>
                       </div>
                       <div className="w-32 space-y-2">
+                        <label className="text-sm">Finalidade</label>
+                        <Input
+                          value={item.finalidade}
+                          readOnly
+                          disabled
+                          placeholder="Automático"
+                          className="bg-muted"
+                        />
+                      </div>
+                      <div className="w-28 space-y-2">
                         <label className="text-sm">Unidade</label>
                         <Select
                           value={item.unidade}
@@ -319,7 +335,7 @@ const NovaRequisicao = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="w-32 space-y-2">
+                      <div className="w-24 space-y-2">
                         <label className="text-sm">Quantidade</label>
                         <Input
                           type="number"
