@@ -434,11 +434,7 @@ const FilaRequisicoes = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos os destinos</SelectItem>
-                      {destinosUnicos.map((destino) => (
-                        <SelectItem key={destino} value={destino}>
-                          {destino}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Setor de Compras">Setor de Compras</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
