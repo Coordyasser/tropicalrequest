@@ -61,15 +61,15 @@ interface StatusChartData {
   quantidade: number;
 }
 
+// Paleta de cores do dashboard (preto, vermelho e amarelo)
+// Utilizada em todos os gráficos para manter consistência visual
 const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(210, 70%, 50%)",
-  "hsl(280, 70%, 50%)",
-  "hsl(30, 70%, 50%)",
+  "#000000", // preto
+  "#B71C1C", // vermelho escuro
+  "#F44336", // vermelho
+  "#FBC02D", // amarelo escuro
+  "#FFC107", // amarelo
+  "#FFEB3B", // amarelo claro
 ];
 
 const Dashboard = () => {
@@ -500,27 +500,34 @@ const Dashboard = () => {
             transition={{ delay: 0.4 }}
           >
             <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-chart-2" />
-                  Requisições por Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {statusData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={statusData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="status" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="quantidade" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center text-muted-foreground py-12">
-                    Nenhum dado de status disponível
-                  </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-chart-2" />
+                Requisições por Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={statusData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="status" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="quantidade" radius={[8, 8, 0, 0]}>
+                      {statusData.map((_, index) => (
+                        <Cell
+                          key={`status-cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  Nenhum dado de status disponível
+                </div>
               )}
             </CardContent>
           </Card>
@@ -531,6 +538,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
+          className="lg:col-span-2"
         >
           <Card className="shadow-lg">
             <CardHeader>
@@ -545,9 +553,21 @@ const Dashboard = () => {
                   <BarChart data={origemData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 12 }} />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={150}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip />
-                    <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[0, 8, 8, 0]} />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                      {origemData.map((_, index) => (
+                        <Cell
+                          key={`origem-cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -579,9 +599,21 @@ const Dashboard = () => {
                   <BarChart data={finalidadeData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" />
-                    <YAxis dataKey="finalidade" type="category" width={150} tick={{ fontSize: 12 }} />
+                    <YAxis
+                      dataKey="finalidade"
+                      type="category"
+                      width={150}
+                      tick={{ fontSize: 12 }}
+                    />
                     <Tooltip />
-                    <Bar dataKey="quantidade" fill="hsl(var(--chart-3))" radius={[0, 8, 8, 0]} />
+                    <Bar dataKey="quantidade" radius={[0, 8, 8, 0]}>
+                      {finalidadeData.map((_, index) => (
+                        <Cell
+                          key={`finalidade-cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

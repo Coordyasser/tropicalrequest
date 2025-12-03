@@ -28,7 +28,8 @@ interface Item {
 // URL do webhook N8N - pode ser configurada via variável de ambiente
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8nevo-n8n.3fmybz.easypanel.host/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed";
 
-const locais = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
+// Lista base de locais sugeridos; o usuário pode digitar novos locais livremente
+const locaisBase = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
 const destinos = ["Setor de Compras"];
 const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
@@ -40,19 +41,35 @@ const NovaRequisicao = () => {
   const [itens, setItens] = useState<Item[]>([
     { produto: "", unidade: "", quantidade: "", finalidade: "" },
   ]);
+  const [locaisSugeridos, setLocaisSugeridos] = useState<string[]>(locaisBase);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Preencher solicitante com o email do usuário ao carregar
+  // e carregar sugestões de locais de origem existentes nas requisições
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchInitialData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setSolicitante(user.email);
       }
+
+      const { data: requisicoes } = await supabase
+        .from("requisicoes")
+        .select("local_origem");
+
+      const locaisFromDb =
+        requisicoes?.map((r: any) => r.local_origem as string).filter(Boolean) ||
+        [];
+
+      const uniqueLocais = Array.from(
+        new Set<string>([...locaisBase, ...locaisFromDb])
+      );
+
+      setLocaisSugeridos(uniqueLocais);
     };
-    fetchUser();
+    fetchInitialData();
   }, []);
 
   const addItem = () => {
@@ -221,18 +238,21 @@ const NovaRequisicao = () => {
                   <label className="text-sm font-medium">
                     Local de Origem *
                   </label>
-                  <Select value={localOrigem} onValueChange={setLocalOrigem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      {locais.map((local) => (
-                        <SelectItem key={local} value={local}>
-                          {local}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={localOrigem}
+                    onChange={(e) => setLocalOrigem(e.target.value)}
+                    list="locais-origem"
+                    placeholder="Digite ou selecione um local..."
+                    className="rounded-lg"
+                  />
+                  <datalist id="locais-origem">
+                    {locaisSugeridos.map((local) => (
+                      <option key={local} value={local} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground">
+                    Você pode selecionar um local existente ou digitar um novo.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
