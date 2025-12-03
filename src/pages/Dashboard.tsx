@@ -10,8 +10,14 @@ import {
   FileText,
   Users,
   MapPin,
-  Target
+  Target,
+  Filter,
+  Calendar
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
   BarChart,
   Bar,
@@ -74,12 +80,27 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
 
+  // Filtros
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+  const [localOrigemFilter, setLocalOrigemFilter] = useState<string>("todos");
+  const [locaisOrigem, setLocaisOrigem] = useState<string[]>([]);
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
     };
     fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchLocaisOrigem = async () => {
+      const { data } = await supabase.from("requisicoes").select("local_origem");
+      const uniqueLocais = [...new Set(data?.map(r => r.local_origem) || [])];
+      setLocaisOrigem(uniqueLocais);
+    };
+    fetchLocaisOrigem();
   }, []);
 
   useEffect(() => {
@@ -127,16 +148,30 @@ const Dashboard = () => {
           solicitantesUnicos: uniqueSolicitantes,
         });
 
-        // Dados para o gráfico de destino - últimos 30 dias
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Aplicar filtros de data
+        let query = supabase.from("requisicoes").select("destino, local_origem, created_at");
+        
+        if (dataInicio) {
+          query = query.gte("created_at", new Date(dataInicio).toISOString());
+        } else {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          query = query.gte("created_at", thirtyDaysAgo.toISOString());
+        }
+        
+        if (dataFim) {
+          const endDate = new Date(dataFim);
+          endDate.setHours(23, 59, 59, 999);
+          query = query.lte("created_at", endDate.toISOString());
+        }
+        
+        if (localOrigemFilter && localOrigemFilter !== "todos") {
+          query = query.eq("local_origem", localOrigemFilter);
+        }
 
-        const { data: requisicoes } = await supabase
-          .from("requisicoes")
-          .select("destino, local_origem")
-          .gte("created_at", thirtyDaysAgo.toISOString());
+        const { data: requisicoes } = await query;
 
-        // Agrupar por destino
+        // Agrupar por destino (para gráfico de pizza)
         const groupedDestino = requisicoes?.reduce((acc: any, req) => {
           acc[req.destino] = (acc[req.destino] || 0) + 1;
           return acc;
@@ -151,7 +186,7 @@ const Dashboard = () => {
 
         setChartData(chartData);
 
-        // Dados para o gráfico de pizza - Local de Origem
+        // Agrupar por Local de Origem (para gráfico de barras)
         const groupedOrigem = requisicoes?.reduce((acc: any, req) => {
           acc[req.local_origem] = (acc[req.local_origem] || 0) + 1;
           return acc;
@@ -166,11 +201,30 @@ const Dashboard = () => {
 
         setOrigemData(origemChartData);
 
-        // Dados para o gráfico de barras - Finalidade
-        const { data: itensData } = await supabase
+        // Dados para o gráfico de barras - Finalidade (com filtros)
+        let itensQuery = supabase
           .from("itens_requisicao")
-          .select("produto, quantidade, requisicao:requisicoes!inner(created_at)")
-          .gte("requisicao.created_at", thirtyDaysAgo.toISOString());
+          .select("produto, quantidade, requisicao:requisicoes!inner(created_at, local_origem)");
+
+        if (dataInicio) {
+          itensQuery = itensQuery.gte("requisicao.created_at", new Date(dataInicio).toISOString());
+        } else {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          itensQuery = itensQuery.gte("requisicao.created_at", thirtyDaysAgo.toISOString());
+        }
+
+        if (dataFim) {
+          const endDate = new Date(dataFim);
+          endDate.setHours(23, 59, 59, 999);
+          itensQuery = itensQuery.lte("requisicao.created_at", endDate.toISOString());
+        }
+
+        if (localOrigemFilter && localOrigemFilter !== "todos") {
+          itensQuery = itensQuery.eq("requisicao.local_origem", localOrigemFilter);
+        }
+
+        const { data: itensData } = await itensQuery;
 
         const groupedFinalidade = itensData?.reduce((acc: any, item) => {
           const finalidade = produtoToFinalidade[item.produto] || "Outros";
@@ -184,7 +238,7 @@ const Dashboard = () => {
             quantidade: quantidade as number,
           }))
           .sort((a, b) => b.quantidade - a.quantidade)
-          .slice(0, 10); // Top 10 finalidades
+          .slice(0, 10);
 
         setFinalidadeData(finalidadeChartData);
 
@@ -198,7 +252,7 @@ const Dashboard = () => {
     };
 
     fetchStats();
-  }, [toast]);
+  }, [toast, dataInicio, dataFim, localOrigemFilter]);
 
   const cards = [
     {
@@ -278,9 +332,82 @@ const Dashboard = () => {
           })}
         </div>
 
+        {/* Filtros */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <Card className="shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Filter className="h-5 w-5 text-primary" />
+                Filtros dos Gráficos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="dataInicio" className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Data de Início
+                  </Label>
+                  <Input
+                    id="dataInicio"
+                    type="date"
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataFim" className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Data Fim
+                  </Label>
+                  <Input
+                    id="dataFim"
+                    type="date"
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="localOrigem" className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    Local de Origem
+                  </Label>
+                  <Select value={localOrigemFilter} onValueChange={setLocalOrigemFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os locais" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os locais</SelectItem>
+                      {locaisOrigem.map((local) => (
+                        <SelectItem key={local} value={local}>
+                          {local}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDataInicio("");
+                    setDataFim("");
+                    setLocalOrigemFilter("todos");
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Chart - Destino */}
+          {/* Chart - Destino (Pie) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -290,30 +417,42 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  Requisições por Destino - Últimos 30 dias
+                  Requisições por Destino
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="destino" />
-                      <YAxis />
+                    <PieChart>
+                      <Pie
+                        data={chartData as any}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="quantidade"
+                        nameKey="destino"
+                        label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {chartData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
                       <Tooltip />
-                      <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                    </BarChart>
+                      <Legend />
+                    </PieChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-center text-muted-foreground py-12">
-                    Nenhuma requisição nos últimos 30 dias
+                    Nenhuma requisição no período
                   </div>
                 )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Chart - Local de Origem (Pie) */}
+          {/* Chart - Local de Origem (Bar) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -329,24 +468,13 @@ const Dashboard = () => {
               <CardContent>
                 {origemData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={origemData as any}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {origemData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
+                    <BarChart data={origemData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
                       <Tooltip />
-                      <Legend />
-                    </PieChart>
+                      <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-center text-muted-foreground py-12">
