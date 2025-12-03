@@ -94,6 +94,35 @@ const NovaRequisicao = () => {
     setItens(newItens);
   };
 
+  const handleLocalOrigemChange = (value: string) => {
+    if (value === "__novo__") {
+      const novoLocal = window.prompt("Digite o novo local de origem:");
+
+      if (novoLocal && novoLocal.trim()) {
+        const novoTrimado = novoLocal.trim();
+
+        setLocaisSugeridos((prev) =>
+          prev.includes(novoTrimado) ? prev : [...prev, novoTrimado]
+        );
+        setLocalOrigem(novoTrimado);
+      }
+
+      return;
+    }
+
+    if (value === "__remover__") {
+      if (!localOrigem) return;
+
+      setLocaisSugeridos((prev) =>
+        prev.filter((local) => local !== localOrigem)
+      );
+      setLocalOrigem("");
+      return;
+    }
+
+    setLocalOrigem(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -238,20 +267,32 @@ const NovaRequisicao = () => {
                   <label className="text-sm font-medium">
                     Local de Origem *
                   </label>
-                  <Input
+                  <Select
                     value={localOrigem}
-                    onChange={(e) => setLocalOrigem(e.target.value)}
-                    list="locais-origem"
-                    placeholder="Digite ou selecione um local..."
-                    className="rounded-lg"
-                  />
-                  <datalist id="locais-origem">
-                    {locaisSugeridos.map((local) => (
-                      <option key={local} value={local} />
-                    ))}
-                  </datalist>
+                    onValueChange={handleLocalOrigemChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione ou cadastre um local..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {locaisSugeridos.map((local) => (
+                        <SelectItem key={local} value={local}>
+                          {local}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__novo__">
+                        + Adicionar novo local...
+                      </SelectItem>
+                      {localOrigem && (
+                        <SelectItem value="__remover__">
+                          Remover local selecionado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    Você pode selecionar um local existente ou digitar um novo.
+                    Use &quot;+ Adicionar novo local...&quot; para incluir um novo
+                    local de origem na lista.
                   </p>
                 </div>
 
