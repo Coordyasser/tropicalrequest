@@ -446,99 +446,11 @@ const Dashboard = () => {
           </Card>
         </motion.div>
 
-        {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Chart - Destino (Pie) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Requisições por Destino
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={chartData as any}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="quantidade"
-                        nameKey="destino"
-                        label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {chartData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center text-muted-foreground py-12">
-                    Nenhuma requisição no período
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Chart - Status (Bar) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-chart-2" />
-                Requisições por Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {statusData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statusData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="status" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="quantidade" radius={[8, 8, 0, 0]}>
-                      {statusData.map((_, index) => (
-                        <Cell
-                          key={`status-cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center text-muted-foreground py-12">
-                  Nenhum dado de status disponível
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* Chart - Local de Origem (Horizontal Bar - Full Width) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="lg:col-span-2"
         >
           <Card className="shadow-lg">
             <CardHeader>
@@ -578,9 +490,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </motion.div>
-        </div>
 
-        {/* Chart - Finalidade */}
+        {/* Chart - Finalidade (Pizza) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -590,31 +501,35 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-chart-3" />
-                Quantidade por Finalidade - Últimos 30 dias (Top 10)
+                Quantidade por Finalidade
               </CardTitle>
             </CardHeader>
             <CardContent>
               {finalidadeData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={finalidadeData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis
-                      dataKey="finalidade"
-                      type="category"
-                      width={150}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar dataKey="quantidade" radius={[0, 8, 8, 0]}>
+                  <PieChart>
+                    <Pie
+                      data={finalidadeData as any}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={120}
+                      dataKey="quantidade"
+                      nameKey="finalidade"
+                      label={({ name, percent }: any) =>
+                        `${name} (${(percent * 100).toFixed(0)}%)`
+                      }
+                    >
                       {finalidadeData.map((_, index) => (
                         <Cell
                           key={`finalidade-cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
                         />
                       ))}
-                    </Bar>
-                  </BarChart>
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="text-center text-muted-foreground py-12">

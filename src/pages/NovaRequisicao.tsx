@@ -33,6 +33,12 @@ const locaisBase = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
 const destinos = ["Setor de Compras"];
 const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
+const formatFinalidade = (valor: string): string => {
+  if (!valor) return "";
+  const lower = valor.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+};
+
 const NovaRequisicao = () => {
   const [solicitante, setSolicitante] = useState("");
   const [localOrigem, setLocalOrigem] = useState("");
@@ -88,7 +94,8 @@ const NovaRequisicao = () => {
     
     // Auto-preencher finalidade quando produto é selecionado
     if (field === "produto" && value) {
-      newItens[index].finalidade = produtoToFinalidade[value] || "";
+      const finalidadeBruta = produtoToFinalidade[value] || "";
+      newItens[index].finalidade = formatFinalidade(finalidadeBruta);
     }
     
     setItens(newItens);

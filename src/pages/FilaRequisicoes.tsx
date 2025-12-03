@@ -70,6 +70,10 @@ interface Item {
 
 const actionButtonClass = "h-8 px-2 text-xs gap-1 rounded-full";
 
+// Webhook do n8n para requisições aprovadas
+const N8N_APROVACAO_WEBHOOK_URL =
+  "https://n8nevo-n8n.3fmybz.easypanel.host/webhook/06bec45c-a4a9-4bdc-a4cd-a9c1fb64247d";
+
 const FilaRequisicoes = () => {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [selectedReq, setSelectedReq] = useState<Requisicao | null>(null);
@@ -358,6 +362,46 @@ const FilaRequisicoes = () => {
         });
 
       if (rastreioError) throw rastreioError;
+
+      // Buscar itens da requisição para enviar no webhook
+      const { data: itensData, error: itensError } = await supabase
+        .from("itens_requisicao")
+        .select("produto, unidade, quantidade")
+        .eq("requisicao_id", req.id);
+
+      if (itensError) throw itensError;
+
+      // Enviar dados da requisição aprovada para o n8n
+      try {
+        const payload = {
+          id: req.id,
+          solicitante: req.solicitante,
+          destino: req.destino,
+          local_origem: req.local_origem,
+          status: "aprovada",
+          observacao: req.observacao,
+          data_criacao: req.created_at,
+          aprovado_por: user.email,
+          pdf_url: pdfUrl,
+          pdf_file_name: fileName,
+          itens: (itensData || []).map((item) => ({
+            produto: item.produto,
+            unidade: item.unidade,
+            quantidade: item.quantidade,
+          })),
+        };
+
+        await fetch(N8N_APROVACAO_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (webhookError) {
+        // Não bloqueia a aprovação se o webhook falhar
+        console.error("Erro ao enviar webhook de aprovação para o n8n:", webhookError);
+      }
 
       toast({
         title: "Requisição aprovada!",
