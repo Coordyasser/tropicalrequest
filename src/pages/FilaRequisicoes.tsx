@@ -40,6 +40,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Requisicao {
   id: number;
@@ -78,6 +88,8 @@ const FilaRequisicoes = () => {
     observacao: "",
     itens: [] as Item[]
   });
+  const [deletingReq, setDeletingReq] = useState<Requisicao | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   // Lista de destinos únicos
@@ -365,6 +377,45 @@ const FilaRequisicoes = () => {
     }
   };
 
+  const handleExcluirRequisicao = async () => {
+    if (!deletingReq) return;
+    
+    setDeleting(true);
+    try {
+      // Primeiro deletar os itens da requisição
+      const { error: itensError } = await supabase
+        .from("itens_requisicao")
+        .delete()
+        .eq("requisicao_id", deletingReq.id);
+
+      if (itensError) throw itensError;
+
+      // Depois deletar a requisição
+      const { error: reqError } = await supabase
+        .from("requisicoes")
+        .delete()
+        .eq("id", deletingReq.id);
+
+      if (reqError) throw reqError;
+
+      toast({
+        title: "Requisição excluída",
+        description: `A requisição #${deletingReq.id} foi excluída com sucesso.`,
+      });
+
+      setDeletingReq(null);
+      fetchRequisicoes();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir requisição",
+        description: error.message,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Filtrar requisições
   const requisicoesFiltered = requisicoes.filter((req) => {
     // Filtro por destino
@@ -618,6 +669,15 @@ const FilaRequisicoes = () => {
                                 )}
                                 PDF
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`${actionButtonClass} border text-destructive hover:text-destructive hover:bg-destructive/10`}
+                                onClick={() => setDeletingReq(req)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -854,6 +914,28 @@ const FilaRequisicoes = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de Confirmação de Exclusão */}
+        <AlertDialog open={!!deletingReq} onOpenChange={() => setDeletingReq(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Requisição</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a requisição #{deletingReq?.id}? Esta ação não pode ser desfeita e todos os itens associados também serão excluídos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleExcluirRequisicao}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
