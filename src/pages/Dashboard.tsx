@@ -56,6 +56,11 @@ interface OrigemChartData {
   value: number;
 }
 
+interface StatusChartData {
+  status: string;
+  quantidade: number;
+}
+
 const COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -77,6 +82,7 @@ const Dashboard = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [finalidadeData, setFinalidadeData] = useState<FinalidadeChartData[]>([]);
   const [origemData, setOrigemData] = useState<OrigemChartData[]>([]);
+  const [statusData, setStatusData] = useState<StatusChartData[]>([]);
   const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
 
@@ -186,7 +192,7 @@ const Dashboard = () => {
 
         setChartData(chartData);
 
-        // Agrupar por Local de Origem (para gráfico de barras)
+        // Agrupar por Local de Origem (para gráfico de barras horizontal)
         const groupedOrigem = requisicoes?.reduce((acc: any, req) => {
           acc[req.local_origem] = (acc[req.local_origem] || 0) + 1;
           return acc;
@@ -200,6 +206,41 @@ const Dashboard = () => {
         );
 
         setOrigemData(origemChartData);
+
+        // Buscar dados de status para o gráfico
+        let statusQuery = supabase.from("requisicoes").select("status, created_at, local_origem");
+        
+        if (dataInicio) {
+          statusQuery = statusQuery.gte("created_at", new Date(dataInicio).toISOString());
+        }
+        
+        if (dataFim) {
+          const endDate = new Date(dataFim);
+          endDate.setHours(23, 59, 59, 999);
+          statusQuery = statusQuery.lte("created_at", endDate.toISOString());
+        }
+        
+        if (localOrigemFilter && localOrigemFilter !== "todos") {
+          statusQuery = statusQuery.eq("local_origem", localOrigemFilter);
+        }
+
+        const { data: statusRequisicoes } = await statusQuery;
+
+        const groupedStatus = statusRequisicoes?.reduce((acc: any, req) => {
+          const statusLabel = req.status === "pendente" ? "Pendente" : 
+                             req.status === "aprovada" ? "Aprovada" : req.status;
+          acc[statusLabel] = (acc[statusLabel] || 0) + 1;
+          return acc;
+        }, {});
+
+        const statusChartData = Object.entries(groupedStatus || {}).map(
+          ([status, quantidade]) => ({
+            status,
+            quantidade: quantidade as number,
+          })
+        );
+
+        setStatusData(statusChartData);
 
         // Dados para o gráfico de barras - Finalidade (com filtros)
         let itensQuery = supabase
@@ -452,7 +493,7 @@ const Dashboard = () => {
             </Card>
           </motion.div>
 
-          {/* Chart - Local de Origem (Bar) */}
+          {/* Chart - Status (Bar) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -461,29 +502,62 @@ const Dashboard = () => {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-chart-2" />
-                  Requisições por Local de Origem
+                  <CheckCircle className="h-5 w-5 text-chart-2" />
+                  Requisições por Status
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {origemData.length > 0 ? (
+                {statusData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={origemData}>
+                    <BarChart data={statusData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
+                      <XAxis dataKey="status" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="quantidade" fill="hsl(var(--chart-2))" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-center text-muted-foreground py-12">
-                    Nenhum dado de origem disponível
+                    Nenhum dado de status disponível
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Chart - Local de Origem (Horizontal Bar - Full Width) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-chart-4" />
+                Requisições por Local de Origem
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {origemData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={origemData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  Nenhum dado de origem disponível
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
         </div>
 
         {/* Chart - Finalidade */}
