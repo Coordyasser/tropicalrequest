@@ -40,6 +40,7 @@ const formatFinalidade = (valor: string): string => {
 };
 
 // Componente separado para o Input de busca - evita re-renderizações desnecessárias
+// Usa ref persistente e estratégia agressiva para manter foco no Android
 const ProdutoSearchInput = React.memo(({ 
   value, 
   onChange 
@@ -48,68 +49,127 @@ const ProdutoSearchInput = React.memo(({
   onChange: (value: string) => void;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
+  const isFocusedRef = useRef(false);
+  const focusRestoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rafIdRef = useRef<number | null>(null);
 
-  // Restaurar foco quando a viewport mudar (teclado abre/fecha)
-  useEffect(() => {
-    if (isFocused && inputRef.current) {
-      // Pequeno delay para garantir que o DOM está atualizado
-      const timeoutId = setTimeout(() => {
-        if (inputRef.current && document.activeElement !== inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
+  // Função para restaurar foco de forma agressiva
+  const restoreFocus = useCallback(() => {
+    if (focusRestoreTimeoutRef.current) {
+      clearTimeout(focusRestoreTimeoutRef.current);
     }
-  }, [isFocused]);
+    
+    // Usar requestAnimationFrame para garantir que acontece após qualquer re-render
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+    
+    rafIdRef.current = requestAnimationFrame(() => {
+      focusRestoreTimeoutRef.current = setTimeout(() => {
+        if (inputRef.current && isFocusedRef.current) {
+          const activeElement = document.activeElement;
+          // Se não está focado ou o elemento ativo não é o input, restaurar foco
+          if (activeElement !== inputRef.current) {
+            inputRef.current.focus();
+            // Scroll para garantir que o input está visível
+            inputRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      }, 10); // Delay muito curto para resposta rápida
+    });
+  }, []);
 
-  // Monitorar mudanças na viewport (quando teclado abre/fecha)
+  // Monitorar mudanças na viewport (quando teclado abre/fecha no Android)
   useEffect(() => {
-    if (!isFocused) return;
+    let viewportResizeHandler: ((e: Event) => void) | null = null;
+    let windowResizeHandler: ((e: Event) => void) | null = null;
 
-    const handleResize = () => {
-      if (inputRef.current && document.activeElement !== inputRef.current) {
-        // Restaurar foco após mudança de viewport
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 50);
+    // Handler para visualViewport (preferido para mobile)
+    if (window.visualViewport) {
+      viewportResizeHandler = () => {
+        // Quando viewport muda (teclado sobe/desce), restaurar foco se estava focado
+        if (isFocusedRef.current) {
+          restoreFocus();
+        }
+      };
+      window.visualViewport.addEventListener("resize", viewportResizeHandler);
+      window.visualViewport.addEventListener("scroll", viewportResizeHandler);
+    }
+
+    // Fallback para window resize
+    windowResizeHandler = () => {
+      if (isFocusedRef.current) {
+        restoreFocus();
       }
     };
+    window.addEventListener("resize", windowResizeHandler, { passive: true });
 
-    // Usar visualViewport quando disponível (melhor para mobile)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleResize);
-      return () => {
-        window.visualViewport?.removeEventListener("resize", handleResize);
-      };
-    } else {
-      window.addEventListener("resize", handleResize);
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    }
-  }, [isFocused]);
-
-  const handleFocus = useCallback(() => {
-    setIsFocused(true);
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    // Delay para verificar se realmente perdeu o foco
-    setTimeout(() => {
-      if (document.activeElement !== inputRef.current) {
-        setIsFocused(false);
+    // Monitorar mudanças de foco no documento
+    const handleFocusChange = () => {
+      if (isFocusedRef.current && document.activeElement !== inputRef.current) {
+        restoreFocus();
       }
-    }, 100);
+    };
+    
+    document.addEventListener("focusin", handleFocusChange);
+    document.addEventListener("focusout", handleFocusChange);
+
+    return () => {
+      if (viewportResizeHandler && window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", viewportResizeHandler);
+        window.visualViewport.removeEventListener("scroll", viewportResizeHandler);
+      }
+      if (windowResizeHandler) {
+        window.removeEventListener("resize", windowResizeHandler);
+      }
+      document.removeEventListener("focusin", handleFocusChange);
+      document.removeEventListener("focusout", handleFocusChange);
+      if (focusRestoreTimeoutRef.current) {
+        clearTimeout(focusRestoreTimeoutRef.current);
+      }
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [restoreFocus]);
+
+  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    isFocusedRef.current = true;
+    // Garantir que o input está realmente focado
+    e.target.focus();
   }, []);
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    // Delay para verificar se realmente perdeu o foco
+    // No Android, o blur pode ser temporário durante mudanças de viewport
+    const timeoutId = setTimeout(() => {
+      if (document.activeElement !== inputRef.current) {
+        isFocusedRef.current = false;
+      } else {
+        // Se ainda está focado, manter o estado
+        isFocusedRef.current = true;
+      }
+    }, 150); // Delay maior para Android
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+    // Garantir foco após mudança
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    }
+  }, [onChange]);
 
   return (
     <Input
       ref={inputRef}
       placeholder="Digite para buscar..."
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleChange}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={(e) => {
@@ -121,26 +181,35 @@ const ProdutoSearchInput = React.memo(({
       }}
       onClick={(e) => {
         e.stopPropagation();
-        // Garantir foco ao clicar
-        inputRef.current?.focus();
+        e.preventDefault();
+        // Garantir foco ao clicar - usar setTimeout para garantir que acontece após o evento
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
+        e.preventDefault();
       }}
       onTouchStart={(e) => {
         e.stopPropagation();
-        // Garantir foco ao tocar
-        setTimeout(() => {
+        // Garantir foco ao tocar - crítico para Android
+        requestAnimationFrame(() => {
           inputRef.current?.focus();
-        }, 0);
+        });
       }}
       onPointerDown={(e) => {
         e.stopPropagation();
       }}
       className="h-8 text-sm"
       autoComplete="off"
+      inputMode="search"
     />
   );
+}, (prevProps, nextProps) => {
+  // Comparação customizada para evitar re-renderizações desnecessárias
+  // Só re-renderiza se o value realmente mudou
+  return prevProps.value === nextProps.value;
 });
 
 ProdutoSearchInput.displayName = "ProdutoSearchInput";
@@ -478,16 +547,33 @@ const NovaRequisicao = () => {
                           onValueChange={(value) =>
                             updateItem(index, "produto", value)
                           }
+                          onOpenChange={(open) => {
+                            // Limpar busca quando o Select fecha
+                            if (!open) {
+                              setProdutoSearch("");
+                            }
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent 
                             className="bg-popover z-50 max-h-[300px]"
+                            position="popper"
                             onEscapeKeyDown={(e) => {
                               // Prevenir fechamento quando o input está focado
                               const activeElement = document.activeElement;
                               if (activeElement?.tagName === "INPUT") {
+                                e.preventDefault();
+                                return;
+                              }
+                            }}
+                            onPointerDownOutside={(e) => {
+                              // Prevenir fechamento se o clique foi no input ou em elementos relacionados
+                              const target = e.target as HTMLElement;
+                              if (target.tagName === "INPUT" || 
+                                  target.closest("input") ||
+                                  target.closest('[role="combobox"]')) {
                                 e.preventDefault();
                               }
                             }}
