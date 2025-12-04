@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Send, Loader2 } from "lucide-react";
 import { produtos, produtoToFinalidade } from "@/data/produtosFinalidade";
+import { ProdutoCombobox } from "@/components/ProdutoCombobox";
 
 interface Item {
   produto: string;
@@ -39,171 +40,6 @@ const formatFinalidade = (valor: string): string => {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 };
 
-// Detectar se está no Chrome Android
-const isChromeAndroid = () => {
-  if (typeof window === "undefined") return false;
-  const ua = window.navigator.userAgent.toLowerCase();
-  return /android/.test(ua) && /chrome/.test(ua) && !/firefox/.test(ua);
-};
-
-// Componente separado para o Input de busca - otimizado para Chrome Android
-// No Chrome Android, o teclado virtual causa mudanças no visualViewport que podem
-// fazer o componente perder foco. Esta solução monitora e restaura o foco agressivamente.
-const ProdutoSearchInput = React.memo(({ 
-  value, 
-  onChange 
-}: { 
-  value: string; 
-  onChange: (value: string) => void;
-}) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const wasFocusedRef = useRef(false);
-  const restoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isChromeAndroidRef = useRef(isChromeAndroid());
-
-  // Estratégia agressiva para Chrome Android: monitorar múltiplos eventos
-  useEffect(() => {
-    if (!isChromeAndroidRef.current) return;
-
-    const restoreFocus = () => {
-      if (wasFocusedRef.current && inputRef.current) {
-        if (restoreTimeoutRef.current) {
-          clearTimeout(restoreTimeoutRef.current);
-        }
-        
-        // Usar requestAnimationFrame + setTimeout para garantir execução após re-render
-        requestAnimationFrame(() => {
-          restoreTimeoutRef.current = setTimeout(() => {
-            if (inputRef.current && wasFocusedRef.current) {
-              const activeElement = document.activeElement;
-              if (activeElement !== inputRef.current) {
-                // Forçar foco e scroll para garantir visibilidade
-                inputRef.current.focus({ preventScroll: false });
-                // Pequeno scroll para garantir que o input está visível
-                inputRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-              }
-            }
-          }, 100); // Delay maior para Chrome Android
-        });
-      }
-    };
-
-    // Monitorar visualViewport (principal causa no Chrome Android)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", restoreFocus);
-      window.visualViewport.addEventListener("scroll", restoreFocus);
-    }
-
-    // Monitorar window resize como fallback
-    window.addEventListener("resize", restoreFocus, { passive: true });
-
-    // Monitorar mudanças de foco no documento
-    const handleFocusChange = () => {
-      if (wasFocusedRef.current && document.activeElement !== inputRef.current) {
-        restoreFocus();
-      }
-    };
-    
-    document.addEventListener("focusin", handleFocusChange);
-    document.addEventListener("focusout", handleFocusChange);
-
-    // Monitorar eventos de scroll que podem causar perda de foco
-    const handleScroll = () => {
-      if (wasFocusedRef.current && document.activeElement !== inputRef.current) {
-        restoreFocus();
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", restoreFocus);
-        window.visualViewport.removeEventListener("scroll", restoreFocus);
-      }
-      window.removeEventListener("resize", restoreFocus);
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("focusin", handleFocusChange);
-      document.removeEventListener("focusout", handleFocusChange);
-      if (restoreTimeoutRef.current) {
-        clearTimeout(restoreTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    wasFocusedRef.current = true;
-    // No Chrome Android, garantir que o foco está realmente ativo
-    if (isChromeAndroidRef.current) {
-      requestAnimationFrame(() => {
-        if (inputRef.current && document.activeElement !== inputRef.current) {
-          inputRef.current.focus();
-        }
-      });
-    }
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    // Delay maior para Chrome Android - o blur pode ser temporário
-    const delay = isChromeAndroidRef.current ? 300 : 200;
-    const timeoutId = setTimeout(() => {
-      if (document.activeElement !== inputRef.current) {
-        wasFocusedRef.current = false;
-      } else {
-        // Se ainda está focado, manter o estado
-        wasFocusedRef.current = true;
-      }
-    }, delay);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    // No Chrome Android, garantir foco imediatamente ao tocar
-    if (isChromeAndroidRef.current) {
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-    }
-  }, []);
-
-  return (
-    <Input
-      ref={inputRef}
-      placeholder="Digite para buscar..."
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === "Enter") {
-          e.preventDefault();
-        }
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-      }}
-      onTouchStart={handleTouchStart}
-      className="h-8 text-sm"
-      autoComplete="off"
-      inputMode="search"
-      // Adicionar atributos específicos para Chrome Android
-      {...(isChromeAndroidRef.current && {
-        "data-chrome-android": "true",
-        style: { WebkitUserSelect: "text" as const }
-      })}
-    />
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.value === nextProps.value;
-});
-
-ProdutoSearchInput.displayName = "ProdutoSearchInput";
-
 const NovaRequisicao = () => {
   const [solicitante, setSolicitante] = useState("");
   const [localOrigem, setLocalOrigem] = useState("");
@@ -212,21 +48,10 @@ const NovaRequisicao = () => {
   const [itens, setItens] = useState<Item[]>([
     { produto: "", unidade: "", quantidade: "", finalidade: "" },
   ]);
-  const [produtoSearch, setProdutoSearch] = useState("");
   const [locaisSugeridos, setLocaisSugeridos] = useState<string[]>(locaisBase);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const isChromeAndroidRef = useRef(isChromeAndroid());
-
-  // Memoizar produtos filtrados para evitar re-renderizações desnecessárias
-  const produtosFiltrados = useMemo(() => {
-    if (!produtoSearch.trim()) return produtos;
-    const searchLower = produtoSearch.toLowerCase();
-    return produtos.filter((prod) =>
-      prod.toLowerCase().includes(searchLower)
-    );
-  }, [produtoSearch]);
 
   // Preencher solicitante com o email do usuário ao carregar
   // e carregar sugestões de locais de origem existentes nas requisições
@@ -272,8 +97,6 @@ const NovaRequisicao = () => {
     if (field === "produto" && value) {
       const finalidadeBruta = produtoToFinalidade[value] || "";
       newItens[index].finalidade = formatFinalidade(finalidadeBruta);
-      // Limpar busca quando produto é selecionado
-      setProdutoSearch("");
     }
     
     setItens(newItens);
@@ -533,55 +356,13 @@ const NovaRequisicao = () => {
                     >
                       <div className="flex-1 min-w-[200px] space-y-2">
                         <label className="text-sm">Produto</label>
-                        <Select
+                        <ProdutoCombobox
                           value={item.produto}
                           onValueChange={(value) =>
                             updateItem(index, "produto", value)
                           }
-                          onOpenChange={(open) => {
-                            // Limpar busca quando o Select fecha
-                            if (!open) {
-                              setProdutoSearch("");
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent 
-                            className="bg-popover z-50 max-h-[300px]"
-                            position="popper"
-                            onEscapeKeyDown={(e) => {
-                              // Prevenir fechamento quando o input está focado
-                              const activeElement = document.activeElement;
-                              if (activeElement?.tagName === "INPUT") {
-                                e.preventDefault();
-                                return;
-                              }
-                              // No Chrome Android, ser mais permissivo - não fechar se há busca ativa
-                              if (isChromeAndroidRef.current && produtoSearch.trim()) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            <div className="p-2 sticky top-0 z-10 bg-popover border-b">
-                              <ProdutoSearchInput
-                                value={produtoSearch}
-                                onChange={setProdutoSearch}
-                              />
-                            </div>
-                            {produtosFiltrados.map((prod) => (
-                              <SelectItem key={prod} value={prod}>
-                                {prod}
-                              </SelectItem>
-                            ))}
-                            {produtosFiltrados.length === 0 && (
-                              <div className="py-6 text-center text-sm text-muted-foreground">
-                                Nenhum produto encontrado
-                              </div>
-                            )}
-                          </SelectContent>
-                        </Select>
+                          produtos={produtos}
+                        />
                       </div>
                       <div className="w-32 space-y-2">
                         <label className="text-sm">Finalidade</label>
