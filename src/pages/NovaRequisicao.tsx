@@ -372,6 +372,10 @@ const NovaRequisicao = () => {
                                 value={produtoSearch}
                                 onChange={(e) => setProdutoSearch(e.target.value)}
                                 onKeyDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
                                 className="h-8 text-sm"
                               />
                             </div>
