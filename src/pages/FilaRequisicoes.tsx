@@ -667,60 +667,60 @@ const FilaRequisicoes = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex flex-wrap justify-end gap-2">
+                            <div className="flex flex-wrap justify-end gap-1">
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="ghost"
-                                className={`${actionButtonClass} border`}
+                                className="h-8 w-8 rounded-full border"
                                 onClick={() => viewDetails(req)}
+                                title="Ver detalhes"
                               >
                                 <Eye className="h-4 w-4" />
-                                Ver
                               </Button>
                               {req.status === "pendente" && (
                                 <>
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="ghost"
-                                    className={`${actionButtonClass} border`}
+                                    className="h-8 w-8 rounded-full border"
                                     onClick={() => handleEditarRequisicao(req)}
+                                    title="Editar"
                                   >
                                     <Edit className="h-4 w-4" />
-                                    Editar
                                   </Button>
                                   <Button
-                                    size="sm"
-                                    className={`${actionButtonClass} bg-primary text-primary-foreground`}
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full bg-primary text-primary-foreground"
                                     onClick={() => handleAprovar(req)}
                                     disabled={processing}
+                                    title="Aprovar"
                                   >
                                     <CheckCircle className="h-4 w-4" />
-                                    Aprovar
                                   </Button>
                                 </>
                               )}
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="ghost"
-                                className={`${actionButtonClass} border`}
+                                className="h-8 w-8 rounded-full border"
                                 onClick={() => handleGerarPdf(req)}
                                 disabled={generatingId === req.id}
+                                title="Gerar PDF"
                               >
                                 {generatingId === req.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <FileText className="h-4 w-4" />
                                 )}
-                                PDF
                               </Button>
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="ghost"
-                                className={`${actionButtonClass} border text-destructive hover:text-destructive hover:bg-destructive/10`}
+                                className="h-8 w-8 rounded-full border text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => setDeletingReq(req)}
+                                title="Excluir"
                               >
                                 <Trash2 className="h-4 w-4" />
-                                Excluir
                               </Button>
                             </div>
                           </TableCell>
