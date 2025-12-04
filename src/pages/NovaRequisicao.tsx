@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,112 @@ const formatFinalidade = (valor: string): string => {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 };
 
+// Componente separado para o Input de busca - evita re-renderizações desnecessárias
+const ProdutoSearchInput = React.memo(({ 
+  value, 
+  onChange 
+}: { 
+  value: string; 
+  onChange: (value: string) => void;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Restaurar foco quando a viewport mudar (teclado abre/fecha)
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      // Pequeno delay para garantir que o DOM está atualizado
+      const timeoutId = setTimeout(() => {
+        if (inputRef.current && document.activeElement !== inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isFocused]);
+
+  // Monitorar mudanças na viewport (quando teclado abre/fecha)
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const handleResize = () => {
+      if (inputRef.current && document.activeElement !== inputRef.current) {
+        // Restaurar foco após mudança de viewport
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+      }
+    };
+
+    // Usar visualViewport quando disponível (melhor para mobile)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+      return () => {
+        window.visualViewport?.removeEventListener("resize", handleResize);
+      };
+    } else {
+      window.addEventListener("resize", handleResize);
+      return () => {
+        window.removeEventListener("resize", handleResize);
+      };
+    }
+  }, [isFocused]);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    // Delay para verificar se realmente perdeu o foco
+    setTimeout(() => {
+      if (document.activeElement !== inputRef.current) {
+        setIsFocused(false);
+      }
+    }, 100);
+  }, []);
+
+  return (
+    <Input
+      ref={inputRef}
+      placeholder="Digite para buscar..."
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        // Prevenir que Enter feche o Select
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        // Garantir foco ao clicar
+        inputRef.current?.focus();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+      }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+        // Garantir foco ao tocar
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 0);
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+      }}
+      className="h-8 text-sm"
+      autoComplete="off"
+    />
+  );
+});
+
+ProdutoSearchInput.displayName = "ProdutoSearchInput";
+
 const NovaRequisicao = () => {
   const [solicitante, setSolicitante] = useState("");
   const [localOrigem, setLocalOrigem] = useState("");
@@ -52,6 +158,15 @@ const NovaRequisicao = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Memoizar produtos filtrados para evitar re-renderizações desnecessárias
+  const produtosFiltrados = useMemo(() => {
+    if (!produtoSearch.trim()) return produtos;
+    const searchLower = produtoSearch.toLowerCase();
+    return produtos.filter((prod) =>
+      prod.toLowerCase().includes(searchLower)
+    );
+  }, [produtoSearch]);
 
   // Preencher solicitante com o email do usuário ao carregar
   // e carregar sugestões de locais de origem existentes nas requisições
@@ -97,6 +212,8 @@ const NovaRequisicao = () => {
     if (field === "produto" && value) {
       const finalidadeBruta = produtoToFinalidade[value] || "";
       newItens[index].finalidade = formatFinalidade(finalidadeBruta);
+      // Limpar busca quando produto é selecionado
+      setProdutoSearch("");
     }
     
     setItens(newItens);
@@ -365,31 +482,32 @@ const NovaRequisicao = () => {
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
-                          <SelectContent className="bg-popover z-50 max-h-[300px]">
-                            <div className="p-2 sticky top-0 z-10 bg-popover">
-                              <Input
-                                placeholder="Digite para buscar..."
+                          <SelectContent 
+                            className="bg-popover z-50 max-h-[300px]"
+                            onEscapeKeyDown={(e) => {
+                              // Prevenir fechamento quando o input está focado
+                              const activeElement = document.activeElement;
+                              if (activeElement?.tagName === "INPUT") {
+                                e.preventDefault();
+                              }
+                            }}
+                          >
+                            <div className="p-2 sticky top-0 z-10 bg-popover border-b">
+                              <ProdutoSearchInput
                                 value={produtoSearch}
-                                onChange={(e) => setProdutoSearch(e.target.value)}
-                                onKeyDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onTouchStart={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                className="h-8 text-sm"
+                                onChange={setProdutoSearch}
                               />
                             </div>
-                            {produtos
-                              .filter((prod) =>
-                                prod
-                                  .toLowerCase()
-                                  .includes(produtoSearch.toLowerCase())
-                              )
-                              .map((prod) => (
-                                <SelectItem key={prod} value={prod}>
-                                  {prod}
-                                </SelectItem>
-                              ))}
+                            {produtosFiltrados.map((prod) => (
+                              <SelectItem key={prod} value={prod}>
+                                {prod}
+                              </SelectItem>
+                            ))}
+                            {produtosFiltrados.length === 0 && (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                Nenhum produto encontrado
+                              </div>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
