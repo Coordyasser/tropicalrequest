@@ -719,8 +719,10 @@ export const produtoToFinalidade: Record<string, string> = produtosFinalidade.re
   {} as Record<string, string>
 );
 
-// Lista de produtos (apenas nomes)
-export const produtos = produtosFinalidade.map((item) => item.produto);
+// Lista de produtos (apenas nomes), ordenada alfabeticamente (A-Z)
+export const produtos = produtosFinalidade
+  .map((item) => item.produto)
+  .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
 // Lista de finalidades únicas
 export const finalidades = [...new Set(produtosFinalidade.map((item) => item.finalidade))].sort();

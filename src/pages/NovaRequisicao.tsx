@@ -47,6 +47,7 @@ const NovaRequisicao = () => {
   const [itens, setItens] = useState<Item[]>([
     { produto: "", unidade: "", quantidade: "", finalidade: "" },
   ]);
+  const [produtoSearch, setProdutoSearch] = useState("");
   const [locaisSugeridos, setLocaisSugeridos] = useState<string[]>(locaisBase);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -365,11 +366,26 @@ const NovaRequisicao = () => {
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent className="bg-popover z-50 max-h-[300px]">
-                            {produtos.map((prod) => (
-                              <SelectItem key={prod} value={prod}>
-                                {prod}
-                              </SelectItem>
-                            ))}
+                            <div className="p-2 sticky top-0 z-10 bg-popover">
+                              <Input
+                                placeholder="Digite para buscar..."
+                                value={produtoSearch}
+                                onChange={(e) => setProdutoSearch(e.target.value)}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            {produtos
+                              .filter((prod) =>
+                                prod
+                                  .toLowerCase()
+                                  .includes(produtoSearch.toLowerCase())
+                              )
+                              .map((prod) => (
+                                <SelectItem key={prod} value={prod}>
+                                  {prod}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
