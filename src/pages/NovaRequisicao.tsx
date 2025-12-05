@@ -32,7 +32,7 @@ const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8nevo-
 // Lista base de locais sugeridos; o usuário pode digitar novos locais livremente
 const locaisBase = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
 const destinos = ["Setor de Compras"];
-const unidades = ["Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
+const unidades = ["Und", "Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
 const formatFinalidade = (valor: string): string => {
   if (!valor) return "";
@@ -383,7 +383,7 @@ const NovaRequisicao = () => {
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="UN" />
+                            <SelectValue placeholder="-" />
                           </SelectTrigger>
                           <SelectContent className="bg-popover z-50">
                             {unidades.map((un) => (
