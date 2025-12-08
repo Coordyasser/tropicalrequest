@@ -18,6 +18,7 @@ import { motion } from "framer-motion";
 import { Plus, Trash2, Send, Loader2 } from "lucide-react";
 import { useOpcoesFormulario } from "@/hooks/useOpcoesFormulario";
 import { ProdutoCombobox } from "@/components/ProdutoCombobox";
+import { PinDialog } from "@/components/PinDialog";
 
 interface Item {
   produto: string;
@@ -44,6 +45,9 @@ const NovaRequisicao = () => {
     { produto: "", unidade: "", quantidade: "", finalidade: "" },
   ]);
   const [loading, setLoading] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pendingLocalAction, setPendingLocalAction] = useState<"add" | "remove" | null>(null);
+  const [pendingLocalValue, setPendingLocalValue] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -93,8 +97,24 @@ const NovaRequisicao = () => {
 
   const handleLocalOrigemChange = async (value: string) => {
     if (value === "__novo__") {
-      const novoLocal = window.prompt("Digite o novo local de origem:");
+      setPendingLocalAction("add");
+      setShowPinDialog(true);
+      return;
+    }
 
+    if (value === "__remover__") {
+      if (!localOrigem) return;
+      setPendingLocalAction("remove");
+      setShowPinDialog(true);
+      return;
+    }
+
+    setLocalOrigem(value);
+  };
+
+  const handlePinSuccess = async () => {
+    if (pendingLocalAction === "add") {
+      const novoLocal = window.prompt("Digite o novo local de origem:");
       if (novoLocal && novoLocal.trim()) {
         const novoTrimado = novoLocal.trim();
         const success = await addOpcao("local_origem", novoTrimado);
@@ -108,19 +128,13 @@ const NovaRequisicao = () => {
           });
         }
       }
-      return;
-    }
-
-    if (value === "__remover__") {
-      if (!localOrigem) return;
+    } else if (pendingLocalAction === "remove" && localOrigem) {
       const success = await removeOpcao("local_origem", localOrigem);
       if (success) {
         setLocalOrigem("");
       }
-      return;
     }
-
-    setLocalOrigem(value);
+    setPendingLocalAction(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -427,6 +441,15 @@ const NovaRequisicao = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* PIN Dialog para Local de Origem */}
+        <PinDialog
+          open={showPinDialog}
+          onOpenChange={setShowPinDialog}
+          onSuccess={handlePinSuccess}
+          title="PIN Necessário"
+          description="Digite o PIN para modificar locais de origem"
+        />
       </motion.div>
     </Layout>
   );

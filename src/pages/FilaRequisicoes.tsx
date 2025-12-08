@@ -50,6 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PinDialog } from "@/components/PinDialog";
 
 interface Requisicao {
   id: number;
@@ -94,6 +95,8 @@ const FilaRequisicoes = () => {
   });
   const [deletingReq, setDeletingReq] = useState<Requisicao | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pendingApprovalReq, setPendingApprovalReq] = useState<Requisicao | null>(null);
   const { toast } = useToast();
 
   // Lista de destinos únicos
@@ -304,6 +307,18 @@ const FilaRequisicoes = () => {
         title: "Erro ao carregar itens",
         description: error.message,
       });
+    }
+  };
+
+  const requestAprovar = (req: Requisicao) => {
+    setPendingApprovalReq(req);
+    setShowPinDialog(true);
+  };
+
+  const handlePinSuccess = () => {
+    if (pendingApprovalReq) {
+      handleAprovar(pendingApprovalReq);
+      setPendingApprovalReq(null);
     }
   };
 
@@ -691,7 +706,7 @@ const FilaRequisicoes = () => {
                                   <Button
                                     size="icon"
                                     className="h-8 w-8 rounded-full bg-primary text-primary-foreground"
-                                    onClick={() => handleAprovar(req)}
+                                    onClick={() => requestAprovar(req)}
                                     disabled={processing}
                                     title="Aprovar"
                                   >
@@ -815,7 +830,7 @@ const FilaRequisicoes = () => {
 
               {selectedReq?.status === "pendente" && (
                 <Button
-                  onClick={() => handleAprovar(selectedReq)}
+                  onClick={() => requestAprovar(selectedReq)}
                   className="w-full gap-2"
                   disabled={processing}
                 >
@@ -980,6 +995,15 @@ const FilaRequisicoes = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* PIN Dialog para aprovar requisição */}
+        <PinDialog
+          open={showPinDialog}
+          onOpenChange={setShowPinDialog}
+          onSuccess={handlePinSuccess}
+          title="PIN Necessário"
+          description="Digite o PIN para aprovar a requisição"
+        />
       </div>
     </Layout>
   );
