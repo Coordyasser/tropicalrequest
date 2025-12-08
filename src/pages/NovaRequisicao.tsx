@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Send, Loader2 } from "lucide-react";
-import { produtos, produtoToFinalidade } from "@/data/produtosFinalidade";
+import { useOpcoesFormulario } from "@/hooks/useOpcoesFormulario";
 import { ProdutoCombobox } from "@/components/ProdutoCombobox";
 
 interface Item {
@@ -28,11 +28,6 @@ interface Item {
 
 // URL do webhook N8N - pode ser configurada via variável de ambiente
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8nevo-n8n.3fmybz.easypanel.host/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed";
-
-// Lista base de locais sugeridos; o usuário pode digitar novos locais livremente
-const locaisBase = ["Vila Diamantina", "Deck Condominio", "Galpoes", "Outros"];
-const destinos = ["Setor de Compras"];
-const unidades = ["Und", "Peça", "Caixa", "Saco", "Pacote", "Rolo", "m³", "m²", "Metro", "Barra", "Litro", "Galão", "Balde", "Lata", "Kg", "Carrada", "Serviço", "Pares"];
 
 const formatFinalidade = (valor: string): string => {
   if (!valor) return "";
@@ -48,35 +43,29 @@ const NovaRequisicao = () => {
   const [itens, setItens] = useState<Item[]>([
     { produto: "", unidade: "", quantidade: "", finalidade: "" },
   ]);
-  const [locaisSugeridos, setLocaisSugeridos] = useState<string[]>(locaisBase);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const {
+    locaisOrigem,
+    destinos,
+    produtos,
+    unidades,
+    produtoToFinalidade,
+    addOpcao,
+    removeOpcao,
+  } = useOpcoesFormulario();
+
   // Preencher solicitante com o email do usuário ao carregar
-  // e carregar sugestões de locais de origem existentes nas requisições
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setSolicitante(user.email);
       }
-
-      const { data: requisicoes } = await supabase
-        .from("requisicoes")
-        .select("local_origem");
-
-      const locaisFromDb =
-        requisicoes?.map((r: any) => r.local_origem as string).filter(Boolean) ||
-        [];
-
-      const uniqueLocais = Array.from(
-        new Set<string>([...locaisBase, ...locaisFromDb])
-      );
-
-      setLocaisSugeridos(uniqueLocais);
     };
-    fetchInitialData();
+    fetchUser();
   }, []);
 
   const addItem = () => {
@@ -102,29 +91,32 @@ const NovaRequisicao = () => {
     setItens(newItens);
   };
 
-  const handleLocalOrigemChange = (value: string) => {
+  const handleLocalOrigemChange = async (value: string) => {
     if (value === "__novo__") {
       const novoLocal = window.prompt("Digite o novo local de origem:");
 
       if (novoLocal && novoLocal.trim()) {
         const novoTrimado = novoLocal.trim();
-
-        setLocaisSugeridos((prev) =>
-          prev.includes(novoTrimado) ? prev : [...prev, novoTrimado]
-        );
-        setLocalOrigem(novoTrimado);
+        const success = await addOpcao("local_origem", novoTrimado);
+        if (success) {
+          setLocalOrigem(novoTrimado);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Erro ao adicionar local de origem",
+          });
+        }
       }
-
       return;
     }
 
     if (value === "__remover__") {
       if (!localOrigem) return;
-
-      setLocaisSugeridos((prev) =>
-        prev.filter((local) => local !== localOrigem)
-      );
-      setLocalOrigem("");
+      const success = await removeOpcao("local_origem", localOrigem);
+      if (success) {
+        setLocalOrigem("");
+      }
       return;
     }
 
@@ -283,7 +275,7 @@ const NovaRequisicao = () => {
                       <SelectValue placeholder="Selecione ou cadastre um local..." />
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-50">
-                      {locaisSugeridos.map((local) => (
+                      {locaisOrigem.map((local) => (
                         <SelectItem key={local} value={local}>
                           {local}
                         </SelectItem>
