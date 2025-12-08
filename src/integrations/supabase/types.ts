@@ -49,6 +49,36 @@ export type Database = {
           },
         ]
       }
+      opcoes_formulario: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          finalidade: string | null
+          id: string
+          tipo: string
+          updated_at: string
+          valor: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          finalidade?: string | null
+          id?: string
+          tipo: string
+          updated_at?: string
+          valor: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          finalidade?: string | null
+          id?: string
+          tipo?: string
+          updated_at?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       rastreio: {
         Row: {
           aprovado_por: string | null
