@@ -354,6 +354,8 @@ const NovaRequisicao = () => {
                             updateItem(index, "produto", value)
                           }
                           produtos={produtos}
+                          onAddProduto={(nome, finalidade) => addOpcao("produto", nome, finalidade)}
+                          onRemoveProduto={(nome) => removeOpcao("produto", nome)}
                         />
                       </div>
                       <div className="w-32 space-y-2">
