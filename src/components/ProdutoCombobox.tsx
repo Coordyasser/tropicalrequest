@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,20 +8,57 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProdutoComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
   produtos: string[];
+  onAddProduto?: (nome: string, finalidade: string) => Promise<boolean>;
+  onRemoveProduto?: (nome: string) => Promise<boolean>;
 }
+
+const FINALIDADES = [
+  "GERAL",
+  "CANTEIRO", 
+  "ESTRUTURA",
+  "ALVENARIA",
+  "INSTALAÇÕES",
+  "REVESTIMENTO",
+  "PINTURA",
+  "ESQUADRIAS",
+  "COBERTURA",
+  "IMPERMEABILIZAÇÃO",
+  "PAISAGISMO",
+  "LIMPEZA",
+];
 
 export const ProdutoCombobox = React.memo(({ 
   value, 
   onValueChange, 
-  produtos 
+  produtos,
+  onAddProduto,
+  onRemoveProduto,
 }: ProdutoComboboxProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newProdutoNome, setNewProdutoNome] = useState("");
+  const [newProdutoFinalidade, setNewProdutoFinalidade] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isAndroidRef = useRef(
@@ -59,10 +96,41 @@ export const ProdutoCombobox = React.memo(({
   }, []);
 
   const handleSelect = useCallback((selectedValue: string) => {
+    if (selectedValue === "__novo__") {
+      setShowAddDialog(true);
+      setOpen(false);
+      return;
+    }
+    if (selectedValue === "__remover__") {
+      if (value && onRemoveProduto) {
+        onRemoveProduto(value).then((success) => {
+          if (success) {
+            onValueChange("");
+          }
+        });
+      }
+      setOpen(false);
+      return;
+    }
     onValueChange(selectedValue);
     setSearch("");
     setOpen(false);
-  }, [onValueChange]);
+  }, [onValueChange, value, onRemoveProduto]);
+
+  const handleAddProduto = async () => {
+    if (!newProdutoNome.trim() || !newProdutoFinalidade || !onAddProduto) return;
+    
+    setIsAdding(true);
+    const success = await onAddProduto(newProdutoNome.trim(), newProdutoFinalidade);
+    setIsAdding(false);
+    
+    if (success) {
+      onValueChange(newProdutoNome.trim());
+      setNewProdutoNome("");
+      setNewProdutoFinalidade("");
+      setShowAddDialog(false);
+    }
+  };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -151,9 +219,74 @@ export const ProdutoCombobox = React.memo(({
                 </button>
               ))
             )}
+            {onAddProduto && (
+              <button
+                type="button"
+                onClick={() => handleSelect("__novo__")}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-primary font-medium border-t"
+              >
+                <Plus className="absolute left-2 h-4 w-4" />
+                Adicionar novo produto...
+              </button>
+            )}
+            {value && onRemoveProduto && (
+              <button
+                type="button"
+                onClick={() => handleSelect("__remover__")}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-destructive hover:text-destructive-foreground text-destructive"
+              >
+                <Trash2 className="absolute left-2 h-4 w-4" />
+                Remover produto selecionado
+              </button>
+            )}
           </div>
         </div>
       </PopoverContent>
+
+      {/* Dialog para adicionar novo produto */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Produto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nome do Produto *</label>
+              <Input
+                value={newProdutoNome}
+                onChange={(e) => setNewProdutoNome(e.target.value)}
+                placeholder="Digite o nome do produto"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Finalidade *</label>
+              <Select value={newProdutoFinalidade} onValueChange={setNewProdutoFinalidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a finalidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FINALIDADES.map((fin) => (
+                    <SelectItem key={fin} value={fin}>
+                      {fin.charAt(0) + fin.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleAddProduto} 
+              disabled={!newProdutoNome.trim() || !newProdutoFinalidade || isAdding}
+            >
+              {isAdding ? "Adicionando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 });
