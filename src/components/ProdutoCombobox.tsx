@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PinDialog } from "@/components/PinDialog";
 
 interface ProdutoComboboxProps {
   value: string;
@@ -59,6 +60,8 @@ export const ProdutoCombobox = React.memo(({
   const [newProdutoNome, setNewProdutoNome] = useState("");
   const [newProdutoFinalidade, setNewProdutoFinalidade] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"add" | "remove" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isAndroidRef = useRef(
@@ -97,17 +100,15 @@ export const ProdutoCombobox = React.memo(({
 
   const handleSelect = useCallback((selectedValue: string) => {
     if (selectedValue === "__novo__") {
-      setShowAddDialog(true);
+      setPendingAction("add");
+      setShowPinDialog(true);
       setOpen(false);
       return;
     }
     if (selectedValue === "__remover__") {
       if (value && onRemoveProduto) {
-        onRemoveProduto(value).then((success) => {
-          if (success) {
-            onValueChange("");
-          }
-        });
+        setPendingAction("remove");
+        setShowPinDialog(true);
       }
       setOpen(false);
       return;
@@ -116,6 +117,19 @@ export const ProdutoCombobox = React.memo(({
     setSearch("");
     setOpen(false);
   }, [onValueChange, value, onRemoveProduto]);
+
+  const handlePinSuccess = useCallback(() => {
+    if (pendingAction === "add") {
+      setShowAddDialog(true);
+    } else if (pendingAction === "remove" && value && onRemoveProduto) {
+      onRemoveProduto(value).then((success) => {
+        if (success) {
+          onValueChange("");
+        }
+      });
+    }
+    setPendingAction(null);
+  }, [pendingAction, value, onRemoveProduto, onValueChange]);
 
   const handleAddProduto = async () => {
     if (!newProdutoNome.trim() || !newProdutoFinalidade || !onAddProduto) return;
@@ -287,6 +301,15 @@ export const ProdutoCombobox = React.memo(({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* PIN Dialog para autenticação */}
+      <PinDialog
+        open={showPinDialog}
+        onOpenChange={setShowPinDialog}
+        onSuccess={handlePinSuccess}
+        title="PIN Necessário"
+        description="Digite o PIN para adicionar ou remover produtos"
+      />
     </Popover>
   );
 });
