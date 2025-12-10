@@ -230,6 +230,16 @@ export const ProdutoCombobox = React.memo(({
               inputMode="search"
             />
           </div>
+          {onAddProduto && (
+            <button
+              type="button"
+              onClick={() => handleSelect("__novo__")}
+              className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-primary font-medium border-b bg-background sticky top-0 z-10"
+            >
+              <Plus className="absolute left-2 h-4 w-4" />
+              Adicionar novo produto...
+            </button>
+          )}
           <div className="max-h-[250px] overflow-y-auto">
             {filteredProdutos.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
@@ -253,21 +263,11 @@ export const ProdutoCombobox = React.memo(({
                 </button>
               ))
             )}
-            {onAddProduto && (
-              <button
-                type="button"
-                onClick={() => handleSelect("__novo__")}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-primary font-medium border-t"
-              >
-                <Plus className="absolute left-2 h-4 w-4" />
-                Adicionar novo produto...
-              </button>
-            )}
             {value && onRemoveProduto && (
               <button
                 type="button"
                 onClick={() => handleSelect("__remover__")}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-destructive hover:text-destructive-foreground text-destructive"
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-destructive hover:text-destructive-foreground text-destructive border-t"
               >
                 <Trash2 className="absolute left-2 h-4 w-4" />
                 Remover produto selecionado
