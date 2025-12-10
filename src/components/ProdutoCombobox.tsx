@@ -33,18 +33,38 @@ interface ProdutoComboboxProps {
 }
 
 const FINALIDADES = [
-  "GERAL",
-  "CANTEIRO", 
-  "ESTRUTURA",
-  "ALVENARIA",
-  "INSTALAÇÕES",
-  "REVESTIMENTO",
-  "PINTURA",
-  "ESQUADRIAS",
-  "COBERTURA",
-  "IMPERMEABILIZAÇÃO",
-  "PAISAGISMO",
-  "LIMPEZA",
+  "Geral",
+  "Alvenaria",
+  "Bancada",
+  "Calcamento",
+  "Canteiro",
+  "Contrapiso",
+  "Drywall",
+  "Eletrica",
+  "Epi",
+  "Equip",
+  "Esquadrias",
+  "Estrutura",
+  "Fachada",
+  "Forro",
+  "Gas",
+  "Hidraulica",
+  "Ic",
+  "Impermeabilizacao",
+  "Instalações",
+  "Lazer",
+  "Limpeza",
+  "Manutencao",
+  "Metalurgica",
+  "Modificacao",
+  "Pavimentacao",
+  "Pintura",
+  "Porta",
+  "Reboco",
+  "Revestimento",
+  "Sanitario",
+  "Split",
+  "Stand",
 ];
 
 export const ProdutoCombobox = React.memo(({ 
@@ -281,7 +301,7 @@ export const ProdutoCombobox = React.memo(({
                 <SelectContent>
                   {FINALIDADES.map((fin) => (
                     <SelectItem key={fin} value={fin}>
-                      {fin.charAt(0) + fin.slice(1).toLowerCase()}
+                      {fin}
                     </SelectItem>
                   ))}
                 </SelectContent>
