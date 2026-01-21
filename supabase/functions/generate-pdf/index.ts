@@ -53,24 +53,39 @@ serve(async (req) => {
 
     const wrapText = (text: string, maxWidth: number, fontRef: any, fontSize: number) => {
       if (!text) return [];
-      const words = text.split(/\s+/);
-      const lines: string[] = [];
-      let currentLine = "";
-
-      words.forEach((word) => {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const testWidth = fontRef.widthOfTextAtSize(testLine, fontSize);
-
-        if (testWidth <= maxWidth) {
-          currentLine = testLine;
-        } else {
-          if (currentLine) lines.push(currentLine);
-          currentLine = word;
+      
+      const allLines: string[] = [];
+      
+      // Primeiro, dividir por quebras de linha para preservar parágrafos
+      const paragraphs = text.split(/\r?\n/);
+      
+      paragraphs.forEach((paragraph) => {
+        // Se o parágrafo estiver vazio, adicionar uma linha vazia
+        if (paragraph.trim() === "") {
+          allLines.push("");
+          return;
         }
+        
+        // Dividir o parágrafo em palavras e fazer word-wrap
+        const words = paragraph.split(/\s+/).filter(w => w.length > 0);
+        let currentLine = "";
+
+        words.forEach((word) => {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = fontRef.widthOfTextAtSize(testLine, fontSize);
+
+          if (testWidth <= maxWidth) {
+            currentLine = testLine;
+          } else {
+            if (currentLine) allLines.push(currentLine);
+            currentLine = word;
+          }
+        });
+
+        if (currentLine) allLines.push(currentLine);
       });
 
-      if (currentLine) lines.push(currentLine);
-      return lines;
+      return allLines;
     };
 
     // Helper to detect image type by magic bytes
