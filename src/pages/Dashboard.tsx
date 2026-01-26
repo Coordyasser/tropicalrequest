@@ -491,7 +491,7 @@ const Dashboard = () => {
           </Card>
         </motion.div>
 
-        {/* Chart - Finalidade (Pizza) */}
+        {/* Tabela - Finalidade */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -506,31 +506,53 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {finalidadeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={finalidadeData as any}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={120}
-                      dataKey="quantidade"
-                      nameKey="finalidade"
-                      label={({ name, percent }: any) =>
-                        `${name} (${(percent * 100).toFixed(0)}%)`
-                      }
-                    >
-                      {finalidadeData.map((_, index) => (
-                        <Cell
-                          key={`finalidade-cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">Finalidade</th>
+                        <th className="text-right py-3 px-4 font-semibold text-foreground">Total</th>
+                        <th className="text-right py-3 px-4 font-semibold text-foreground">Porcentagem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const totalGeral = finalidadeData.reduce((sum, item) => sum + item.quantidade, 0);
+                        return finalidadeData.map((item, index) => {
+                          const percentual = totalGeral > 0 ? (item.quantidade / totalGeral) * 100 : 0;
+                          return (
+                            <tr key={item.finalidade} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                  />
+                                  <span className="text-foreground">{item.finalidade}</span>
+                                </div>
+                              </td>
+                              <td className="text-right py-3 px-4 font-medium text-foreground">
+                                {item.quantidade.toLocaleString('pt-BR')}
+                              </td>
+                              <td className="text-right py-3 px-4 text-muted-foreground">
+                                {percentual.toFixed(1)}%
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30 font-semibold">
+                        <td className="py-3 px-4 text-foreground">Total</td>
+                        <td className="text-right py-3 px-4 text-foreground">
+                          {finalidadeData.reduce((sum, item) => sum + item.quantidade, 0).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="text-right py-3 px-4 text-foreground">100%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               ) : (
                 <div className="text-center text-muted-foreground py-12">
                   Nenhum dado de finalidade disponível
