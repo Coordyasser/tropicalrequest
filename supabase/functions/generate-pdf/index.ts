@@ -312,7 +312,11 @@ serve(async (req) => {
     // Items
     yPos -= 25;
     itens?.forEach((item: any, index: number) => {
-      if (yPos < 100) {
+      // Calcular linhas do produto usando wrapText (largura máxima de 260px para coluna Produto)
+      const produtoLines = wrapText(item.produto, 260, font, 9);
+      const itemHeight = Math.max(produtoLines.length * 12, 20); // altura mínima de 20px
+      
+      if (yPos < 100 + itemHeight) {
         // Add new page if needed
         page = pdfDoc.addPage([595, 842]);
         yPos = height - 50;
@@ -326,13 +330,17 @@ serve(async (req) => {
         color: rgb(0, 0, 0),
       });
       
-      const produtoText = item.produto.length > 50 ? item.produto.substring(0, 47) + "..." : item.produto;
-      page.drawText(produtoText, {
-        x: 120,
-        y: yPos,
-        size: 9,
-        font,
-        color: rgb(0, 0, 0),
+      // Desenhar todas as linhas do produto
+      let produtoY = yPos;
+      produtoLines.forEach((line) => {
+        page.drawText(line, {
+          x: 120,
+          y: produtoY,
+          size: 9,
+          font,
+          color: rgb(0, 0, 0),
+        });
+        produtoY -= 12;
       });
       
       page.drawText(item.unidade, {
@@ -351,7 +359,7 @@ serve(async (req) => {
         color: rgb(0, 0, 0),
       });
       
-      yPos -= 20;
+      yPos -= itemHeight + 5; // espaço entre itens
     });
     
     // Date
