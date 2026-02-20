@@ -73,7 +73,7 @@ const actionButtonClass = "h-8 px-2 text-xs gap-1 rounded-full";
 
 // Webhook do n8n para requisições aprovadas
 const N8N_APROVACAO_WEBHOOK_URL =
-  "https://n8nevo-n8n.3fmybz.easypanel.host/webhook/06bec45c-a4a9-4bdc-a4cd-a9c1fb64247d";
+  "https://n8nevo-n8n-webhook.3fmybz.easypanel.host/webhook/06bec45c-a4a9-4bdc-a4cd-a9c1fb64247d";
 
 const FilaRequisicoes = () => {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
