@@ -710,7 +710,7 @@ const FilaRequisicoes = () => {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8 rounded-full border"
-                                    onClick={() => handleEditarRequisicao(req)}
+                                    onClick={() => requestEditar(req)}
                                     title="Editar"
                                   >
                                     <Edit className="h-4 w-4" />
