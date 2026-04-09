@@ -1014,7 +1014,7 @@ const FilaRequisicoes = () => {
           onOpenChange={setShowPinDialog}
           onSuccess={handlePinSuccess}
           title="PIN Necessário"
-          description="Digite o PIN para aprovar a requisição"
+          description={pinAction === "aprovar" ? "Digite o PIN para aprovar a requisição" : "Digite o PIN para editar a requisição"}
         />
       </div>
     </Layout>
