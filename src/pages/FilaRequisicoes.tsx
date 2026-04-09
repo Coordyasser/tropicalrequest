@@ -97,6 +97,8 @@ const FilaRequisicoes = () => {
   const [deleting, setDeleting] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [pendingApprovalReq, setPendingApprovalReq] = useState<Requisicao | null>(null);
+  const [pendingEditReq, setPendingEditReq] = useState<Requisicao | null>(null);
+  const [pinAction, setPinAction] = useState<"aprovar" | "editar">("aprovar");
   const { toast } = useToast();
 
   // Lista de destinos únicos
