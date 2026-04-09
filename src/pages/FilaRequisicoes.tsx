@@ -314,13 +314,23 @@ const FilaRequisicoes = () => {
 
   const requestAprovar = (req: Requisicao) => {
     setPendingApprovalReq(req);
+    setPinAction("aprovar");
+    setShowPinDialog(true);
+  };
+
+  const requestEditar = (req: Requisicao) => {
+    setPendingEditReq(req);
+    setPinAction("editar");
     setShowPinDialog(true);
   };
 
   const handlePinSuccess = () => {
-    if (pendingApprovalReq) {
+    if (pinAction === "aprovar" && pendingApprovalReq) {
       handleAprovar(pendingApprovalReq);
       setPendingApprovalReq(null);
+    } else if (pinAction === "editar" && pendingEditReq) {
+      handleEditarRequisicao(pendingEditReq);
+      setPendingEditReq(null);
     }
   };
 
