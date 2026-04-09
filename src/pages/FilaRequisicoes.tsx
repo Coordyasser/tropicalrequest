@@ -97,6 +97,8 @@ const FilaRequisicoes = () => {
   const [deleting, setDeleting] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [pendingApprovalReq, setPendingApprovalReq] = useState<Requisicao | null>(null);
+  const [pendingEditReq, setPendingEditReq] = useState<Requisicao | null>(null);
+  const [pinAction, setPinAction] = useState<"aprovar" | "editar">("aprovar");
   const { toast } = useToast();
 
   // Lista de destinos únicos
@@ -312,13 +314,23 @@ const FilaRequisicoes = () => {
 
   const requestAprovar = (req: Requisicao) => {
     setPendingApprovalReq(req);
+    setPinAction("aprovar");
+    setShowPinDialog(true);
+  };
+
+  const requestEditar = (req: Requisicao) => {
+    setPendingEditReq(req);
+    setPinAction("editar");
     setShowPinDialog(true);
   };
 
   const handlePinSuccess = () => {
-    if (pendingApprovalReq) {
+    if (pinAction === "aprovar" && pendingApprovalReq) {
       handleAprovar(pendingApprovalReq);
       setPendingApprovalReq(null);
+    } else if (pinAction === "editar" && pendingEditReq) {
+      handleEditarRequisicao(pendingEditReq);
+      setPendingEditReq(null);
     }
   };
 
@@ -698,7 +710,7 @@ const FilaRequisicoes = () => {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8 rounded-full border"
-                                    onClick={() => handleEditarRequisicao(req)}
+                                    onClick={() => requestEditar(req)}
                                     title="Editar"
                                   >
                                     <Edit className="h-4 w-4" />
@@ -1002,7 +1014,7 @@ const FilaRequisicoes = () => {
           onOpenChange={setShowPinDialog}
           onSuccess={handlePinSuccess}
           title="PIN Necessário"
-          description="Digite o PIN para aprovar a requisição"
+          description={pinAction === "aprovar" ? "Digite o PIN para aprovar a requisição" : "Digite o PIN para editar a requisição"}
         />
       </div>
     </Layout>
