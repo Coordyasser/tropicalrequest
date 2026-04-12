@@ -42,7 +42,7 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: "/nova-requisicao", label: "Nova Requisição", icon: Plus },
     { path: "/fila", label: "Fila de Requisições", icon: Clock },
     { path: "/rastreio", label: "Rastreio", icon: History },
-    { path: "https://trello.com/invite/b/6891ef5ed834f5ae47cb016b/ATTIb4999dee3c5257833452f1bcb660f55b604CA00E/painel-de-pedidos-de-compra", label: "Trello", icon: Trello, external: true },
+    { path: import.meta.env.VITE_TRELLO_URL as string, label: "Trello", icon: Trello, external: true },
   ];
 
   const NavLinks = () => (

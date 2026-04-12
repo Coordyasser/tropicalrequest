@@ -27,8 +27,8 @@ interface Item {
   finalidade: string;
 }
 
-// URL do webhook N8N - pode ser configurada via variável de ambiente
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://n8nevo-n8n-webhook.3fmybz.easypanel.host/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed";
+// URL do webhook N8N - configurada via variável de ambiente
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL as string;
 
 const formatFinalidade = (valor: string): string => {
   if (!valor) return "";

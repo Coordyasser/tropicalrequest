@@ -109,20 +109,25 @@ const Rastreio = () => {
 
       if (rastreioError) throw rastreioError;
 
-      // Para cada rastreio, buscar os itens
-      const rastreiosComItens = await Promise.all(
-        (rastreios || []).map(async (rastreio) => {
-          const { data: itens } = await supabase
+      // Buscar todos os itens em uma única query (evita N+1)
+      const reqIds = (rastreios || []).map((r) => r.requisicao.id);
+      const { data: todosItens } = reqIds.length > 0
+        ? await supabase
             .from("itens_requisicao")
-            .select("produto, quantidade, unidade")
-            .eq("requisicao_id", rastreio.requisicao.id);
+            .select("produto, quantidade, unidade, requisicao_id")
+            .in("requisicao_id", reqIds)
+        : { data: [] };
 
-          return {
-            ...rastreio,
-            itens: itens || [],
-          };
-        })
-      );
+      const itensPorReqId = (todosItens || []).reduce<Record<number, typeof todosItens>>((acc, item) => {
+        if (!acc[item.requisicao_id]) acc[item.requisicao_id] = [];
+        acc[item.requisicao_id].push(item);
+        return acc;
+      }, {});
+
+      const rastreiosComItens = (rastreios || []).map((rastreio) => ({
+        ...rastreio,
+        itens: itensPorReqId[rastreio.requisicao.id] || [],
+      }));
 
       setData(rastreiosComItens);
       setFilteredData(rastreiosComItens);
