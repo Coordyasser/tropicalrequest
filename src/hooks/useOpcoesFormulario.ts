@@ -20,11 +20,33 @@ export function useOpcoesFormulario() {
   const fetchOpcoes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("opcoes_formulario")
-        .select("*")
-        .eq("ativo", true)
-        .order("valor");
+      // Fetch all records - Supabase default limit is 1000, so we need to paginate
+      let allData: OpcaoFormulario[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error: fetchError } = await supabase
+          .from("opcoes_formulario")
+          .select("*")
+          .eq("ativo", true)
+          .order("valor")
+          .range(from, from + pageSize - 1);
+
+        if (fetchError) throw fetchError;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...(data as OpcaoFormulario[])];
+          from += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      const error = null;
+      const data = allData;
 
       if (error) throw error;
 
