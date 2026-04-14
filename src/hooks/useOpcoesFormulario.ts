@@ -51,35 +51,40 @@ export function useOpcoesFormulario() {
     }
   };
 
-  const addOpcao = async (tipo: string, valor: string, finalidade?: string) => {
+  const addOpcao = async (tipo: string, valor: string, finalidade?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const { error } = await supabase
         .from("opcoes_formulario")
-        .insert({ tipo, valor, finalidade: finalidade || null });
+        .insert({ tipo, valor, finalidade: finalidade || null, ativo: true });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          return { success: false, message: "Já existe um item com esse nome na lista." };
+        }
+        throw error;
+      }
       await fetchOpcoes();
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error("Erro ao adicionar opção:", error);
-      return false;
+      return { success: false, message: error?.message || "Erro ao salvar. Tente novamente." };
     }
   };
 
-  const removeOpcao = async (tipo: string, valor: string) => {
+  const removeOpcao = async (tipo: string, valor: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const { error } = await supabase
         .from("opcoes_formulario")
-        .delete()
+        .update({ ativo: false })
         .eq("tipo", tipo)
         .eq("valor", valor);
 
       if (error) throw error;
       await fetchOpcoes();
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error("Erro ao remover opção:", error);
-      return false;
+      return { success: false, message: error?.message || "Erro ao remover. Tente novamente." };
     }
   };
 
