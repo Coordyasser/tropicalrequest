@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -28,8 +29,8 @@ interface ProdutoComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
   produtos: string[];
-  onAddProduto?: (nome: string, finalidade: string) => Promise<boolean>;
-  onRemoveProduto?: (nome: string) => Promise<boolean>;
+  onAddProduto?: (nome: string, finalidade: string) => Promise<{ success: boolean; message?: string }>;
+  onRemoveProduto?: (nome: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 const FINALIDADES = [
@@ -74,6 +75,7 @@ export const ProdutoCombobox = React.memo(({
   onAddProduto,
   onRemoveProduto,
 }: ProdutoComboboxProps) => {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -142,27 +144,39 @@ export const ProdutoCombobox = React.memo(({
     if (pendingAction === "add") {
       setShowAddDialog(true);
     } else if (pendingAction === "remove" && value && onRemoveProduto) {
-      onRemoveProduto(value).then((success) => {
-        if (success) {
+      onRemoveProduto(value).then((result) => {
+        if (result.success) {
           onValueChange("");
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Erro ao remover produto",
+            description: result.message || "Tente novamente.",
+          });
         }
       });
     }
     setPendingAction(null);
-  }, [pendingAction, value, onRemoveProduto, onValueChange]);
+  }, [pendingAction, value, onRemoveProduto, onValueChange, toast]);
 
   const handleAddProduto = async () => {
     if (!newProdutoNome.trim() || !newProdutoFinalidade || !onAddProduto) return;
-    
+
     setIsAdding(true);
-    const success = await onAddProduto(newProdutoNome.trim(), newProdutoFinalidade);
+    const result = await onAddProduto(newProdutoNome.trim(), newProdutoFinalidade);
     setIsAdding(false);
-    
-    if (success) {
+
+    if (result.success) {
       onValueChange(newProdutoNome.trim());
       setNewProdutoNome("");
       setNewProdutoFinalidade("");
       setShowAddDialog(false);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro ao adicionar produto",
+        description: result.message || "Tente novamente.",
+      });
     }
   };
 

@@ -117,21 +117,27 @@ const NovaRequisicao = () => {
       const novoLocal = window.prompt("Digite o novo local de origem:");
       if (novoLocal && novoLocal.trim()) {
         const novoTrimado = novoLocal.trim();
-        const success = await addOpcao("local_origem", novoTrimado);
-        if (success) {
+        const result = await addOpcao("local_origem", novoTrimado);
+        if (result.success) {
           setLocalOrigem(novoTrimado);
         } else {
           toast({
             variant: "destructive",
-            title: "Erro",
-            description: "Erro ao adicionar local de origem",
+            title: "Erro ao adicionar local de origem",
+            description: result.message || "Tente novamente.",
           });
         }
       }
     } else if (pendingLocalAction === "remove" && localOrigem) {
-      const success = await removeOpcao("local_origem", localOrigem);
-      if (success) {
+      const result = await removeOpcao("local_origem", localOrigem);
+      if (result.success) {
         setLocalOrigem("");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro ao remover local de origem",
+          description: result.message || "Tente novamente.",
+        });
       }
     }
     setPendingLocalAction(null);
