@@ -160,14 +160,17 @@ const Rastreio = () => {
 
   useEffect(() => {
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const filtered = data.filter(
-        (item) =>
-          item.requisicao?.destino?.toLowerCase().includes(term) ||
-          item.requisicao?.solicitante?.toLowerCase().includes(term) ||
-          item.requisicao?.observacao?.toLowerCase().includes(term) ||
-          item.itens.some((i) => i.produto.toLowerCase().includes(term))
-      );
+      const term = searchTerm.toLowerCase().trim();
+      const filtered = data.filter((item) => {
+        const idMatch = String(item.requisicao?.id ?? "").includes(term);
+        const destinoMatch = item.requisicao?.destino?.toLowerCase().includes(term);
+        const solicitanteMatch = item.requisicao?.solicitante?.toLowerCase().includes(term);
+        const observacaoMatch = item.requisicao?.observacao?.toLowerCase().includes(term);
+        const produtoMatch = item.itens?.some((i) =>
+          i.produto?.toLowerCase().includes(term)
+        );
+        return idMatch || destinoMatch || solicitanteMatch || observacaoMatch || produtoMatch;
+      });
       setFilteredData(filtered);
     } else {
       setFilteredData(data);
@@ -184,7 +187,7 @@ const Rastreio = () => {
             <div className="relative flex-1 md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por destino, solicitante, produto ou observação..."
+                placeholder="Buscar por nº, destino, solicitante, produto ou observação..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
