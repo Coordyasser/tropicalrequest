@@ -270,6 +270,7 @@ const Rastreio = () => {
                       <TableHead>Destino</TableHead>
                       <TableHead>Solicitante</TableHead>
                       <TableHead>Produtos</TableHead>
+                      <TableHead>Observação</TableHead>
                       <TableHead className="text-right">Qtd Total</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -278,7 +279,7 @@ const Rastreio = () => {
                     {filteredData.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={6}
+                          colSpan={7}
                           className="text-center py-12 text-muted-foreground"
                         >
                           {searchTerm
@@ -314,6 +315,15 @@ const Rastreio = () => {
                                 </div>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            {item.requisicao?.observacao ? (
+                              <div className="text-sm whitespace-pre-wrap break-words">
+                                {item.requisicao.observacao}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {item.itens.reduce(
