@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { motion } from "framer-motion";
 import { 
   Clock, 
@@ -102,8 +103,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchLocaisOrigem = async () => {
-      const { data } = await supabase.from("requisicoes").select("local_origem");
-      const uniqueLocais = [...new Set(data?.map(r => r.local_origem) || [])];
+      const data = await fetchAll<{ local_origem: string }>((from, to) =>
+        supabase.from("requisicoes").select("local_origem").order("id").range(from, to)
+      );
+      const uniqueLocais = [...new Set(data.map(r => r.local_origem))];
       setLocaisOrigem(uniqueLocais);
     };
     fetchLocaisOrigem();
@@ -128,23 +131,27 @@ const Dashboard = () => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         
-        const { data: recentItems } = await supabase
-          .from("itens_requisicao")
-          .select("quantidade, requisicao:requisicoes!inner(created_at)")
-          .gte("requisicao.created_at", sevenDaysAgo.toISOString());
+        const recentItems = await fetchAll<{ quantidade: number }>((from, to) =>
+          supabase
+            .from("itens_requisicao")
+            .select("quantidade, requisicao:requisicoes!inner(created_at)")
+            .gte("requisicao.created_at", sevenDaysAgo.toISOString())
+            .order("id")
+            .range(from, to)
+        );
 
-        const totalItems = recentItems?.reduce(
+        const totalItems = recentItems.reduce(
           (sum, item) => sum + Number(item.quantidade),
           0
-        ) || 0;
+        );
 
         // Solicitantes únicos
-        const { data: allRequisicoes } = await supabase
-          .from("requisicoes")
-          .select("solicitante");
+        const allRequisicoes = await fetchAll<{ solicitante: string }>((from, to) =>
+          supabase.from("requisicoes").select("solicitante").order("id").range(from, to)
+        );
 
         const uniqueSolicitantes = new Set(
-          allRequisicoes?.map((r) => r.solicitante) || []
+          allRequisicoes.map((r) => r.solicitante)
         ).size;
 
         setStats({
@@ -155,30 +162,36 @@ const Dashboard = () => {
         });
 
         // Aplicar filtros de data
-        let query = supabase.from("requisicoes").select("destino, local_origem, created_at");
-        
-        if (dataInicio) {
-          query = query.gte("created_at", new Date(dataInicio).toISOString());
-        } else {
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          query = query.gte("created_at", thirtyDaysAgo.toISOString());
-        }
-        
-        if (dataFim) {
-          const endDate = new Date(dataFim);
-          endDate.setHours(23, 59, 59, 999);
-          query = query.lte("created_at", endDate.toISOString());
-        }
-        
-        if (localOrigemFilter && localOrigemFilter !== "todos") {
-          query = query.eq("local_origem", localOrigemFilter);
-        }
+        const requisicoes = await fetchAll<{ destino: string; local_origem: string; created_at: string }>((from, to) => {
+          let query = supabase
+            .from("requisicoes")
+            .select("destino, local_origem, created_at")
+            .order("id")
+            .range(from, to);
 
-        const { data: requisicoes } = await query;
+          if (dataInicio) {
+            query = query.gte("created_at", new Date(dataInicio).toISOString());
+          } else {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            query = query.gte("created_at", thirtyDaysAgo.toISOString());
+          }
+
+          if (dataFim) {
+            const endDate = new Date(dataFim);
+            endDate.setHours(23, 59, 59, 999);
+            query = query.lte("created_at", endDate.toISOString());
+          }
+
+          if (localOrigemFilter && localOrigemFilter !== "todos") {
+            query = query.eq("local_origem", localOrigemFilter);
+          }
+
+          return query;
+        });
 
         // Agrupar por destino (para gráfico de pizza)
-        const groupedDestino = requisicoes?.reduce((acc: any, req) => {
+        const groupedDestino = requisicoes.reduce((acc: any, req) => {
           acc[req.destino] = (acc[req.destino] || 0) + 1;
           return acc;
         }, {});
@@ -208,25 +221,31 @@ const Dashboard = () => {
         setOrigemData(origemChartData);
 
         // Buscar dados de status para o gráfico
-        let statusQuery = supabase.from("requisicoes").select("status, created_at, local_origem");
-        
-        if (dataInicio) {
-          statusQuery = statusQuery.gte("created_at", new Date(dataInicio).toISOString());
-        }
-        
-        if (dataFim) {
-          const endDate = new Date(dataFim);
-          endDate.setHours(23, 59, 59, 999);
-          statusQuery = statusQuery.lte("created_at", endDate.toISOString());
-        }
-        
-        if (localOrigemFilter && localOrigemFilter !== "todos") {
-          statusQuery = statusQuery.eq("local_origem", localOrigemFilter);
-        }
+        const statusRequisicoes = await fetchAll<{ status: string; created_at: string; local_origem: string }>((from, to) => {
+          let statusQuery = supabase
+            .from("requisicoes")
+            .select("status, created_at, local_origem")
+            .order("id")
+            .range(from, to);
 
-        const { data: statusRequisicoes } = await statusQuery;
+          if (dataInicio) {
+            statusQuery = statusQuery.gte("created_at", new Date(dataInicio).toISOString());
+          }
 
-        const groupedStatus = statusRequisicoes?.reduce((acc: any, req) => {
+          if (dataFim) {
+            const endDate = new Date(dataFim);
+            endDate.setHours(23, 59, 59, 999);
+            statusQuery = statusQuery.lte("created_at", endDate.toISOString());
+          }
+
+          if (localOrigemFilter && localOrigemFilter !== "todos") {
+            statusQuery = statusQuery.eq("local_origem", localOrigemFilter);
+          }
+
+          return statusQuery;
+        });
+
+        const groupedStatus = statusRequisicoes.reduce((acc: any, req) => {
           const statusLabel = req.status === "pendente" ? "Pendente" : 
                              req.status === "aprovada" ? "Aprovada" : req.status;
           acc[statusLabel] = (acc[statusLabel] || 0) + 1;
@@ -243,31 +262,35 @@ const Dashboard = () => {
         setStatusData(statusChartData);
 
         // Dados para o gráfico de barras - Finalidade (com filtros)
-        let itensQuery = supabase
-          .from("itens_requisicao")
-          .select("produto, quantidade, requisicao:requisicoes!inner(created_at, local_origem)");
+        const itensData = await fetchAll<{ produto: string; quantidade: number }>((from, to) => {
+          let itensQuery = supabase
+            .from("itens_requisicao")
+            .select("produto, quantidade, requisicao:requisicoes!inner(created_at, local_origem)")
+            .order("id")
+            .range(from, to);
 
-        if (dataInicio) {
-          itensQuery = itensQuery.gte("requisicao.created_at", new Date(dataInicio).toISOString());
-        } else {
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          itensQuery = itensQuery.gte("requisicao.created_at", thirtyDaysAgo.toISOString());
-        }
+          if (dataInicio) {
+            itensQuery = itensQuery.gte("requisicao.created_at", new Date(dataInicio).toISOString());
+          } else {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            itensQuery = itensQuery.gte("requisicao.created_at", thirtyDaysAgo.toISOString());
+          }
 
-        if (dataFim) {
-          const endDate = new Date(dataFim);
-          endDate.setHours(23, 59, 59, 999);
-          itensQuery = itensQuery.lte("requisicao.created_at", endDate.toISOString());
-        }
+          if (dataFim) {
+            const endDate = new Date(dataFim);
+            endDate.setHours(23, 59, 59, 999);
+            itensQuery = itensQuery.lte("requisicao.created_at", endDate.toISOString());
+          }
 
-        if (localOrigemFilter && localOrigemFilter !== "todos") {
-          itensQuery = itensQuery.eq("requisicao.local_origem", localOrigemFilter);
-        }
+          if (localOrigemFilter && localOrigemFilter !== "todos") {
+            itensQuery = itensQuery.eq("requisicao.local_origem", localOrigemFilter);
+          }
 
-        const { data: itensData } = await itensQuery;
+          return itensQuery;
+        });
 
-        const groupedFinalidade = itensData?.reduce((acc: any, item) => {
+        const groupedFinalidade = itensData.reduce((acc: any, item) => {
           const finalidade = produtoToFinalidade[item.produto] || "Outros";
           acc[finalidade] = (acc[finalidade] || 0) + Number(item.quantidade);
           return acc;

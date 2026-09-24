@@ -12,11 +12,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll, fetchAllIn } from "@/lib/fetchAll";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Search, FileText, Loader2, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+type RastreioRow = Omit<RastreioData, "itens">;
+
+type ItemRow = {
+  produto: string;
+  quantidade: number;
+  unidade: string;
+  requisicao_id: number;
+};
 
 interface RastreioData {
   id: string;
@@ -93,40 +103,42 @@ const Rastreio = () => {
   const fetchRastreio = async () => {
     setLoading(true);
     try {
-      // Buscar rastreios
-      const { data: rastreios, error: rastreioError } = await supabase
-        .from("rastreio")
-        .select(
+      const rastreios = await fetchAll<RastreioRow>((from, to) =>
+        supabase
+          .from("rastreio")
+          .select(
+            `
+            *,
+            requisicao:requisicoes (
+              id,
+              destino,
+              solicitante,
+              observacao
+            )
           `
-          *,
-          requisicao:requisicoes (
-            id,
-            destino,
-            solicitante,
-            observacao
           )
-        `
-        )
-        .order("data_aprovacao", { ascending: false });
+          .order("data_aprovacao", { ascending: false })
+          .range(from, to)
+      );
 
-      if (rastreioError) throw rastreioError;
+      // Itens em lote (evita N+1)
+      const reqIds = rastreios.map((r) => r.requisicao.id);
+      const todosItens = await fetchAllIn<ItemRow, number>(reqIds, (chunk, from, to) =>
+        supabase
+          .from("itens_requisicao")
+          .select("produto, quantidade, unidade, requisicao_id")
+          .in("requisicao_id", chunk)
+          .order("id")
+          .range(from, to)
+      );
 
-      // Buscar todos os itens em uma única query (evita N+1)
-      const reqIds = (rastreios || []).map((r) => r.requisicao.id);
-      const { data: todosItens } = reqIds.length > 0
-        ? await supabase
-            .from("itens_requisicao")
-            .select("produto, quantidade, unidade, requisicao_id")
-            .in("requisicao_id", reqIds)
-        : { data: [] };
-
-      const itensPorReqId = (todosItens || []).reduce<Record<number, typeof todosItens>>((acc, item) => {
+      const itensPorReqId = todosItens.reduce<Record<number, ItemRow[]>>((acc, item) => {
         if (!acc[item.requisicao_id]) acc[item.requisicao_id] = [];
         acc[item.requisicao_id].push(item);
         return acc;
       }, {});
 
-      const rastreiosComItens = (rastreios || []).map((rastreio) => ({
+      const rastreiosComItens = rastreios.map((rastreio) => ({
         ...rastreio,
         itens: itensPorReqId[rastreio.requisicao.id] || [],
       }));
