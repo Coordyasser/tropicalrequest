@@ -31,6 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetchAll";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Eye, CheckCircle, RefreshCw, Loader2, FileText, CalendarIcon, X, Edit, Trash2, Plus } from "lucide-react";
@@ -108,13 +109,15 @@ const FilaRequisicoes = () => {
   const fetchRequisicoes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("requisicoes")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const data = await fetchAll<Requisicao>((from, to) =>
+        supabase
+          .from("requisicoes")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      );
 
-      if (error) throw error;
-      setRequisicoes(data || []);
+      setRequisicoes(data);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -179,6 +182,7 @@ const FilaRequisicoes = () => {
   const handleEditarRequisicao = async (req: Requisicao) => {
     try {
       // Buscar itens da requisição
+      // eslint-disable-next-line no-restricted-syntax -- limitado a uma requisicao (max ~17 itens), nunca chega perto de 1000
       const { data: itensData, error } = await supabase
         .from("itens_requisicao")
         .select("*")
@@ -226,6 +230,7 @@ const FilaRequisicoes = () => {
       if (reqError) throw reqError;
 
       // Obter itens atuais
+      // eslint-disable-next-line no-restricted-syntax -- limitado a uma requisicao (max ~17 itens), nunca chega perto de 1000
       const { data: itensAtuais } = await supabase
         .from("itens_requisicao")
         .select("id")
@@ -294,6 +299,7 @@ const FilaRequisicoes = () => {
 
   const viewDetails = async (req: Requisicao) => {
     try {
+      // eslint-disable-next-line no-restricted-syntax -- limitado a uma requisicao (max ~17 itens), nunca chega perto de 1000
       const { data, error } = await supabase
         .from("itens_requisicao")
         .select("*")
@@ -390,6 +396,7 @@ const FilaRequisicoes = () => {
       if (rastreioError) throw rastreioError;
 
       // Buscar itens da requisição para enviar no webhook
+      // eslint-disable-next-line no-restricted-syntax -- limitado a uma requisicao (max ~17 itens), nunca chega perto de 1000
       const { data: itensData, error: itensError } = await supabase
         .from("itens_requisicao")
         .select("produto, unidade, quantidade")

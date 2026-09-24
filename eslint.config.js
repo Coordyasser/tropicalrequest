@@ -21,6 +21,22 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // O Supabase corta silenciosamente toda resposta em 1000 linhas. Um
+      // `.select()` sem paginação não dá erro: só devolve dados a menos.
+      // Use `fetchAll`/`fetchAllIn` de @/lib/fetchAll.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "AwaitExpression:has(MemberExpression[object.name='supabase'])" +
+            ":has(CallExpression[callee.property.name='select'])" +
+            ":not(:has(CallExpression[callee.property.name=/^(range|limit|single|maybeSingle)$/]))" +
+            ":not(:has(Property[key.name='head']))",
+          message:
+            "Query Supabase sem paginação: o PostgREST corta em 1000 linhas sem avisar. " +
+            "Use fetchAll()/fetchAllIn() de @/lib/fetchAll, ou .single()/.limit()/count head:true se for intencional.",
+        },
+      ],
     },
   },
 );
