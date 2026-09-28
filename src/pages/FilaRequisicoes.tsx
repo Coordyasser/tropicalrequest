@@ -179,6 +179,44 @@ const FilaRequisicoes = () => {
 
   useEffect(() => {
     fetchRequisicoes();
+
+    const aplicarAlteracao = (req: Requisicao) => {
+      setRequisicoes((prev) => {
+        if (prev.some((r) => r.id === req.id)) {
+          return prev.map((r) => (r.id === req.id ? { ...r, ...req } : r));
+        }
+        return [req, ...prev].sort((a, b) => b.created_at.localeCompare(a.created_at));
+      });
+      setSelectedReq((prev) => (prev?.id === req.id ? { ...prev, ...req } : prev));
+    };
+
+    // Mudanças feitas em outra máquina ou pelo n8n (ex.: link do Drive
+    // gravado alguns segundos depois da aprovação) aparecem sem recarregar.
+    let jaConectou = false;
+    const canal = supabase
+      .channel("fila-requisicoes")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "requisicoes" }, (payload) =>
+        aplicarAlteracao(payload.new as Requisicao)
+      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requisicoes" }, (payload) =>
+        aplicarAlteracao(payload.new as Requisicao)
+      )
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "requisicoes" }, (payload) => {
+        const id = (payload.old as { id?: number }).id;
+        if (id === undefined) return;
+        setRequisicoes((prev) => prev.filter((r) => r.id !== id));
+        setSelectedReq((prev) => (prev?.id === id ? null : prev));
+      })
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        // Reconexão: recarrega para pegar o que mudou com o canal fora
+        if (jaConectou) fetchRequisicoes();
+        jaConectou = true;
+      });
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
   }, []);
 
   const handleEditarRequisicao = async (req: Requisicao) => {

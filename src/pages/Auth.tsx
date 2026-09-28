@@ -102,7 +102,7 @@ const Auth = () => {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="https://xpcwlbdyuxzaoyknnpvx.supabase.co/storage/v1/object/public/imagem/tropical%20vetor.png" 
+                src="/tropical_vetor.png" 
                 alt="Logo" 
                 className="h-20 w-auto"
               />

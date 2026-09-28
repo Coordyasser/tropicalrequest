@@ -301,7 +301,7 @@ const Kanban = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+          <div className="flex gap-4 overflow-x-auto pb-4 items-start lg:gap-3 lg:overflow-x-visible">
             {COLUNAS.map((col) => {
               const total = porFase[col.fase].length;
               const limite = limites[col.fase] ?? CARTOES_POR_BLOCO;
@@ -319,11 +319,11 @@ const Kanban = () => {
                   }}
                   onDrop={(e) => handleDrop(e, col.fase)}
                   className={cn(
-                    "w-72 shrink-0 rounded-xl bg-card shadow-md border flex flex-col max-h-[calc(100vh-14rem)] transition-colors",
+                    "w-72 shrink-0 lg:w-auto lg:flex-1 lg:min-w-0 rounded-xl bg-card shadow-md border flex flex-col max-h-[calc(100vh-14rem)] transition-colors",
                     overFase === col.fase && "ring-2 ring-primary bg-primary/5"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-2">
+                  <div className="flex items-start justify-between gap-2 px-3 pt-3 pb-2">
                     <h3 className="font-semibold text-sm leading-snug">{col.titulo}</h3>
                     <span className="text-sm text-muted-foreground">{total}</span>
                   </div>
@@ -344,11 +344,11 @@ const Kanban = () => {
                         }}
                         onClick={() => abrirDetalhes(req)}
                         className={cn(
-                          "rounded-lg border bg-background p-3 shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/60 transition-all",
+                          "rounded-lg border bg-background p-2.5 shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/60 transition-all",
                           draggingId === req.id && "opacity-40"
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-1">
                           <span className="font-semibold text-sm">#{req.id}</span>
                           <div className="flex items-center gap-1">
                             <Badge className={cn("text-[10px] px-1.5 py-0", getStatusColor(req.status))}>
@@ -358,13 +358,13 @@ const Kanban = () => {
                           </div>
                         </div>
                         <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                          <p className="flex items-center gap-1.5 truncate">
+                          <p className="flex items-center gap-1.5 min-w-0" title={req.solicitante}>
                             <User className="h-3 w-3 shrink-0" />
-                            {req.solicitante}
+                            <span className="truncate">{req.solicitante}</span>
                           </p>
-                          <p className="flex items-center gap-1.5 truncate">
+                          <p className="flex items-center gap-1.5 min-w-0" title={req.local_origem}>
                             <MapPin className="h-3 w-3 shrink-0" />
-                            {req.local_origem}
+                            <span className="truncate">{req.local_origem}</span>
                           </p>
                           <p className="flex items-center gap-1.5">
                             <CalendarDays className="h-3 w-3 shrink-0" />
