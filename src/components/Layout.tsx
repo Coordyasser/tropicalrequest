@@ -8,7 +8,7 @@ import {
   History, 
   LogOut,
   Menu,
-  Trello
+  KanbanSquare
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -42,31 +42,15 @@ export const Layout = ({ children }: LayoutProps) => {
     { path: "/nova-requisicao", label: "Nova Requisição", icon: Plus },
     { path: "/fila", label: "Fila de Requisições", icon: Clock },
     { path: "/rastreio", label: "Rastreio", icon: History },
-    { path: import.meta.env.VITE_TRELLO_URL as string, label: "Trello", icon: Trello, external: true },
+    { path: "/kanban", label: "Kanban", icon: KanbanSquare },
   ];
 
   const NavLinks = () => (
     <>
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = !item.external && location.pathname === item.path;
-        
-        if (item.external) {
-          return (
-            <a
-              key={item.path}
-              href={item.path}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <Icon className="h-5 w-5" />
-              <span className="font-medium">{item.label}</span>
-            </a>
-          );
-        }
-        
+        const isActive = location.pathname === item.path;
+
         return (
           <Link
             key={item.path}

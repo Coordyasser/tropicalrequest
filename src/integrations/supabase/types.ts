@@ -118,6 +118,9 @@ export type Database = {
         Row: {
           created_at: string | null
           destino: string
+          drive_url: string | null
+          fase: string
+          fase_atualizada_em: string | null
           id: number
           local_origem: string
           observacao: string | null
@@ -130,6 +133,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           destino: string
+          drive_url?: string | null
+          fase?: string
+          fase_atualizada_em?: string | null
           id?: number
           local_origem: string
           observacao?: string | null
@@ -142,6 +148,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           destino?: string
+          drive_url?: string | null
+          fase?: string
+          fase_atualizada_em?: string | null
           id?: number
           local_origem?: string
           observacao?: string | null

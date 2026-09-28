@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.validate-pin]
 verify_jwt = false
+
+[functions.salvar-drive-url]
+verify_jwt = false

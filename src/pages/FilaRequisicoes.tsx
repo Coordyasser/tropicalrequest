@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PinDialog } from "@/components/PinDialog";
+import { LinkDrive } from "@/components/LinkDrive";
 
 interface Requisicao {
   id: number;
@@ -61,6 +62,7 @@ interface Requisicao {
   status: string;
   created_at: string;
   observacao: string;
+  drive_url: string | null;
 }
 
 interface Item {
@@ -799,6 +801,10 @@ const FilaRequisicoes = () => {
                   </Badge>
                 </div>
               </div>
+
+              {selectedReq && (
+                <LinkDrive status={selectedReq.status} driveUrl={selectedReq.drive_url} />
+              )}
 
               {selectedReq?.observacao && (
                 <div>

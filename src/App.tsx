@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const NovaRequisicao = lazy(() => import("./pages/NovaRequisicao"));
 const FilaRequisicoes = lazy(() => import("./pages/FilaRequisicoes"));
 const Rastreio = lazy(() => import("./pages/Rastreio"));
+const Kanban = lazy(() => import("./pages/Kanban"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -100,6 +101,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <Rastreio />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/kanban"
+                element={
+                  <ProtectedRoute>
+                    <Kanban />
                   </ProtectedRoute>
                 }
               />
