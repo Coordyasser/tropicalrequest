@@ -101,6 +101,7 @@ const Kanban = () => {
         supabase
           .from("requisicoes")
           .select(COLUNAS_SELECT)
+          .neq("status", "pendente")
           .order("created_at", { ascending: false })
           .range(from, to)
       );
@@ -120,6 +121,13 @@ const Kanban = () => {
     fetchRequisicoes();
 
     const aplicarAlteracao = (req: Requisicao) => {
+      // Pendentes ainda estão na Fila aguardando aprovação: só entram no
+      // quadro depois de aprovadas.
+      if (req.status === "pendente") {
+        setRequisicoes((prev) => prev.filter((r) => r.id !== req.id));
+        setSelectedReq((prev) => (prev?.id === req.id ? null : prev));
+        return;
+      }
       setRequisicoes((prev) => {
         if (prev.some((r) => r.id === req.id)) {
           return prev.map((r) => (r.id === req.id ? { ...r, ...req } : r));

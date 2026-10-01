@@ -27,9 +27,6 @@ interface Item {
   finalidade: string;
 }
 
-// URL do webhook N8N - configurada via variável de ambiente
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL as string;
-
 const formatFinalidade = (valor: string): string => {
   if (!valor) return "";
   const lower = valor.toLowerCase();
@@ -203,43 +200,6 @@ const NovaRequisicao = () => {
         );
 
       if (itensError) throw itensError;
-
-      // Notificar via N8N webhook
-      try {
-        const webhookPayload = {
-          requisicao_id: requisicao.id,
-          solicitante,
-          local_origem: localOrigem,
-          destino,
-          observacao,
-          status: "pendente",
-          data_criacao: new Date().toISOString(),
-          itens: itemsValidos.map((item) => ({
-            produto: item.produto,
-            unidade: item.unidade,
-            quantidade: item.quantidade,
-          })),
-        };
-
-        console.log("Enviando dados para N8N webhook:", webhookPayload);
-
-        const response = await fetch(N8N_WEBHOOK_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(webhookPayload),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Webhook retornou status ${response.status}`);
-        }
-
-        console.log("Notificação enviada com sucesso para N8N");
-      } catch (webhookError) {
-        console.error("Erro ao enviar webhook para o n8n:", webhookError);
-        // Não bloqueia o fluxo principal se o webhook falhar
-      }
 
       toast({
         title: "Requisição enviada!",

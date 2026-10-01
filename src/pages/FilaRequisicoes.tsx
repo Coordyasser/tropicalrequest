@@ -76,6 +76,9 @@ const actionButtonClass = "h-8 px-2 text-xs gap-1 rounded-full";
 
 // Webhook do n8n para requisições aprovadas
 const N8N_APROVACAO_WEBHOOK_URL = import.meta.env.VITE_N8N_APROVACAO_WEBHOOK_URL as string;
+// Webhook do n8n de entrada no quadro Kanban: disparado na aprovação, quando
+// a requisição sai da Fila e aparece em Novas Requisições
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL as string;
 
 const FilaRequisicoes = () => {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
@@ -474,6 +477,36 @@ const FilaRequisicoes = () => {
       } catch (webhookError) {
         // Não bloqueia a aprovação se o webhook falhar
         console.error("Erro ao enviar webhook de aprovação para o n8n:", webhookError);
+      }
+
+      try {
+        const response = await fetch(N8N_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requisicao_id: req.id,
+            solicitante: req.solicitante,
+            local_origem: req.local_origem,
+            destino: req.destino,
+            observacao: req.observacao,
+            status: "aprovada",
+            data_criacao: req.created_at,
+            itens: (itensData || []).map((item) => ({
+              produto: item.produto,
+              unidade: item.unidade,
+              quantidade: item.quantidade,
+            })),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Webhook retornou status ${response.status}`);
+        }
+      } catch (webhookError) {
+        // Não bloqueia a aprovação se o webhook falhar
+        console.error("Erro ao enviar webhook para o n8n:", webhookError);
       }
 
       toast({
