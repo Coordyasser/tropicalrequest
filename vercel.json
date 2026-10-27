@@ -20,11 +20,11 @@
   "rewrites": [
     {
       "source": "/api/n8n/nova",
-      "destination": "http://72.60.7.155:5678/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed"
+      "destination": "https://n8n-webhook.72.60.7.155.sslip.io/webhook/8ca0b57f-4a07-41e9-8f90-7839821235ed"
     },
     {
       "source": "/api/n8n/aprovacao",
-      "destination": "http://72.60.7.155:5678/webhook/06bec45c-a4a9-4bdc-a4cd-a9c1fb64247d"
+      "destination": "https://n8n-webhook.72.60.7.155.sslip.io/webhook/06bec45c-a4a9-4bdc-a4cd-a9c1fb64247d"
     },
     {
       "source": "/(.*)",
